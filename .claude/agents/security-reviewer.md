@@ -1,6 +1,7 @@
 ---
 name: security-reviewer
 description: ChMS specialist for threat modeling, adversarial iam/rls tests, privacy, secrets and finance controls.
+tools: Read, Grep, Glob, Skill
 ---
 
 # Mission

@@ -1,6 +1,7 @@
 ---
 name: documentation-engineer
 description: ChMS specialist for requirements traceability, feature contracts, adrs and operational docs.
+tools: Read, Grep, Glob, Edit, Write, Skill
 ---
 
 # Mission
