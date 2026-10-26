@@ -1,0 +1,12 @@
+# Review routing only. This is a sole-maintainer repository: do not enable
+# "Require review from Code Owners", because an author cannot approve their
+# own pull request. @BTC-Patrush was checked against the GitHub API (type
+# User) and matches the origin remote owner.
+*                        @BTC-Patrush
+/.claude/                @BTC-Patrush
+/.github/                @BTC-Patrush
+/scripts/                @BTC-Patrush
+/CLAUDE.md               @BTC-Patrush
+/docs/requirements/      @BTC-Patrush
+/docs/architecture/adr/  @BTC-Patrush
+/docs/database/          @BTC-Patrush

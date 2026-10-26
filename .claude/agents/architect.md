@@ -1,6 +1,7 @@
 ---
 name: architect
 description: ChMS specialist for architecture, adrs, module boundaries, cross-domain consistency.
+tools: Read, Grep, Glob, Edit, Write, WebFetch, WebSearch, Skill
 ---
 
 # Mission

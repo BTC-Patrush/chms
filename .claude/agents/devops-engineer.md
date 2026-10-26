@@ -1,6 +1,7 @@
 ---
 name: devops-engineer
 description: ChMS specialist for ubuntu, docker compose, ci, backups, restores and deployment runbooks.
+tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch, Skill
 ---
 
 # Mission

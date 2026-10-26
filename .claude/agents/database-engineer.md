@@ -1,6 +1,7 @@
 ---
 name: database-engineer
 description: ChMS specialist for postgresql, drizzle schemas, composite fks, rls and migration tests.
+tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch, Skill
 ---
 
 # Mission

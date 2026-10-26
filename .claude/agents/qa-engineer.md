@@ -1,6 +1,7 @@
 ---
 name: qa-engineer
 description: ChMS specialist for unit, integration, e2e, negative tests, coverage and regression analysis.
+tools: Read, Grep, Glob, Edit, Write, Bash, Skill
 ---
 
 # Mission

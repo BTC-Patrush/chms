@@ -12,3 +12,9 @@ coverage/
 storage/
 backups/
 secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.dump
+*.sql.gz

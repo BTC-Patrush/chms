@@ -1,6 +1,7 @@
 ---
 name: frontend-engineer
 description: ChMS specialist for accessible next.js/shadcn ui, forms, errors, loading and empty states.
+tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch, Skill
 ---
 
 # Mission

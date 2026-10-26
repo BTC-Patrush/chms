@@ -1,6 +1,7 @@
 ---
 name: backend-engineer
 description: ChMS specialist for domain services, api contracts, validation, transactions and outbox.
+tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch, Skill
 ---
 
 # Mission
