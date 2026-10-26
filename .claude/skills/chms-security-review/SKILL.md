@@ -1,5 +1,5 @@
 ---
-name: security-review
+name: chms-security-review
 description: Threat model changed trust boundaries; verify finance, media, privacy, IAM and secrets; report residual risks.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: code-review
+name: chms-code-review
 description: Review correctness, scope, maintainability, concurrency, security and test evidence; distinguish blocking from suggestions.
 ---
 
