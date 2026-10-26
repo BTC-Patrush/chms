@@ -33,3 +33,25 @@ Ask Claude to audit requirements coverage and report unresolved decisions **with
 
 ## 6. Later engineering gates
 Implement lint, typecheck, unit/integration/E2E tests, migration checks, dependency/secret scans, CI, branch protection and isolated RLS adversarial tests. None are installed by this starter kit.
+
+## 7. Configuration hardening: verification and rollback
+The `chore/config-hardening` branch gives each agent an explicit tool allowlist, renames skills that shadowed built-in commands, adds deny and ask permission rules, and records every tracked file as mode `100644`.
+
+Verify on that branch:
+```bash
+umask                                               # expect 0022
+python3 scripts/check_repo_hygiene.py               # expect OK
+find . -path ./.git -prune -o -perm /022 -print     # expect no output
+```
+
+Roll back without losing the permission fix:
+```bash
+umask 022                                           # git creates checked-out files with this mask
+git switch main                                     # keeps the branch; nothing is deleted
+find . -path ./.git -prune -o -perm /022 -print     # expect no output
+find . -path ./.git -prune -o -perm /022 -exec chmod go-w {} +   # only if the previous command listed paths
+```
+
+On `main`, tracked files are `755` until the branch is merged, because `main` still records mode `100755`. They are not group- or world-writable. Do not re-extract the starter ZIP, run `chmod -R 777`, or set `core.fileMode false`: it does not stop git applying `755` on checkout and it hides later mode changes. Deleting the branch (`git branch -D chore/config-hardening`) discards the change and needs explicit approval.
+
+Installing the sandbox dependencies (`bubblewrap`, `socat`) and adding CI secret scanning are separate follow-up tasks that each need explicit approval.
