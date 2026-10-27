@@ -2,7 +2,7 @@
 
 Documentation-first, Claude Code-assisted engineering starter kit for a self-hosted single-church, multi-campus ChMS.
 
-**Status:** CHMS-F001 implementation has started: toolchain and PostgreSQL 18 compatibility tests. No migration, service or production environment exists yet.
+**Status:** CHMS-F001 implementation in progress: toolchain, PostgreSQL 18 compatibility tests and migration M00 (roles, grants, audit trail). The F001 tables (M01a), services and any production environment do not exist yet.
 
 ## Local development
 Requires Node.js 24.22.1 (`.nvmrc`) and Docker with Compose v2. No paid cloud service is needed.
@@ -24,7 +24,17 @@ npm run test:unit
 npm run test:db    # creates and drops its own databases on the local cluster
 npm run build
 ```
-Database tests refuse any host other than `127.0.0.1`. Migrations are applied only as an explicit operator step; `drizzle-kit push` is never used. Next.js telemetry can be disabled with `NEXT_TELEMETRY_DISABLED=1` (CI does).
+Database tests refuse any host other than `127.0.0.1`. They provision the roles below on the local cluster with random passwords. Next.js telemetry can be disabled with `NEXT_TELEMETRY_DISABLED=1` (CI does).
+
+## Database provisioning and migrations
+These are privileged steps (`CLAUDE.md`, ADR-006). Run them only with explicit human authorization.
+
+1. As a superuser, once per cluster: `psql -v ON_ERROR_STOP=1 -f db/provision/01-cluster-roles.sql`. This creates `chms_owner`, `chms_app`, `chms_audit_writer` and `chms_audit_reader`, and sets no passwords.
+2. Set the login passwords for `chms_owner` and `chms_app`, for example with psql's `\password`.
+3. Create the database. Then, as a superuser connected to it: `psql -v ON_ERROR_STOP=1 -d <database> -f db/provision/02-database-privileges.sql`.
+4. As `chms_owner`: `npx drizzle-kit migrate`, with the connection string in `CHMS_MIGRATION_DATABASE_URL` (keep the password out of shell history). Migrations never run on application startup, and `drizzle-kit push` is never used.
+
+Authorized audit readers are granted per login: `GRANT CONNECT ON DATABASE <database> TO <login>;` and `GRANT chms_audit_reader TO <login>;` (POL-03). A full operations runbook is deferred (B-09).
 
 ## Ubuntu setup
 ```bash
