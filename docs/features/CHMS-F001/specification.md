@@ -1,14 +1,14 @@
 # CHMS-F001 — Church, Campus and Person Foundation
-Status: Draft — business rules approved by the product owner on 2026-10-27; technical design Proposed; not approved for implementation
+Status: Approved — business rules, name rules and ADR-001 to ADR-008 approved or accepted by the product owner, Patrush, on 2026-10-27, with amendments. Implementation is authorized and starts after the documentation PR is merged. Nothing has been implemented or executed.
 Domain: D-02 Church (partial), D-03 People (partial)
-Requirement IDs: BR-01 to BR-10 and POL-01 to POL-06 (provisional, feature-scoped identifiers; RR-18)
-Owner: Product owner (named approver to be recorded at review)
+Requirement IDs: BR-01 to BR-10, POL-01 to POL-06 and PPD-01 (provisional, feature-scoped identifiers; RR-18)
+Owner: Patrush (product owner)
 
 | Related document | Link |
 |---|---|
 | Approved business rules (authoritative text) | [D-02](../../requirements/domains/D-02-church.md#approved-business-rules-chms-f001), [D-03](../../requirements/domains/D-03-people.md#approved-business-rules-chms-f001) |
 | Decision register | [CHMS-F001-decision-register.md](../../decisions/CHMS-F001-decision-register.md) |
-| Database design (proposed) | [CHMS-F001-database-design.md](../../database/CHMS-F001-database-design.md) |
+| Database design | [CHMS-F001-database-design.md](../../database/CHMS-F001-database-design.md) |
 | Security review | [CHMS-F001-security-review.md](../../architecture/CHMS-F001-security-review.md) |
 | Test and acceptance matrix | [test-matrix.md](test-matrix.md) |
 | Implementation readiness | [implementation-readiness.md](implementation-readiness.md) |
@@ -78,7 +78,7 @@ All invariants are enforced by the database, except where noted. See [database d
 10. Stale updates are rejected. *Enforced by the service through `row_version`.*
 
 ## Data model and transactions
-See the [database design proposal](../../database/CHMS-F001-database-design.md), and ADR-003 to ADR-008 (Proposed).
+See the [database design](../../database/CHMS-F001-database-design.md) and ADR-001 to ADR-008 (Accepted).
 
 ## API contract
 There is no external API. The internal service operations are:
@@ -110,12 +110,12 @@ See the [security review](../../architecture/CHMS-F001-security-review.md). F001
 | AC-F001-03 | BR-01 | **Given** a church exists, **when** the owner role inserts a second church, **then** it is rejected (`23505`, `churches_singleton_uq`). **When** `chms_app` inserts any church, **then** it is rejected (`42501`). |
 | AC-F001-04 | BR-09 | **Given** a church, **when** its `id` is updated, **then** the update is rejected for every role. **When** a maintenance operator renames it, **then** the name changes and one audit event records `changed_fields = {name}`. |
 | AC-F001-05 | BR-09, TD-03 | **When** `id`, `church_id`, or an affiliation's `person_id` or `campus_id` is updated on any F001 table, **then** it is rejected: `42501` for `chms_app`; `CHI01` for the owner role. |
-| AC-F001-06 | BR-07, TD-09 | **Given** a campus "North", active or archived, **when** another campus is created with, or renamed to, a name equal under the approved case-insensitive comparison (for example "north" or "NORTH"), **then** it is rejected (`23505`, `campuses_name_ci_uq`). Campus-name validation (trimming, NFC, 1–120 characters, preserved capitalization) and the expected results for non-ASCII names apply once PPD-01 (RR-16) is confirmed. |
+| AC-F001-06 | BR-07, PPD-01, TD-09 | **Given** a campus "North", active or archived, **when** another campus is created with, or renamed to, a name equal under the approved case-insensitive comparison (for example "north" or "NORTH"), **then** it is rejected (`23505`, `campuses_name_ci_uq`). Campus names follow the approved name rules (PPD-01): trimmed, NFC, no control characters, 1–100 characters, capitalization preserved. The comparison function, `casefold()` or `lower()`, is chosen by CP-08, and TS-F001-07 records its results for non-ASCII names. |
 | AC-F001-07 | BR-06 | **Given** a campus with at least one active affiliation, **when** it is archived, **then** the archive is rejected (`CampusHasActiveAffiliations`) and nothing changes. **After** all its affiliations have ended, archiving succeeds. |
 | AC-F001-08 | BR-06, TD-04 | **Given** an archived campus, **when** an affiliation to it is created, through the service or by direct SQL as `chms_app`, **then** it is rejected (`23503`, `pca_campus_active_fk`). |
 | AC-F001-09 | BR-06, TD-04 | **When** a campus archive and an affiliation insert for that campus interleave, in either order, at READ COMMITTED or REPEATABLE READ, **then** at most one succeeds; the other fails with `23503` or `40001`; and no active affiliation references an archived campus. |
-| AC-F001-10 | BR-02, TD-02 | **When** a person is created with no account, **then** the row persists with a database-generated UUIDv4 `id`. `people` has no column referencing an account. An insert by `chms_app` that supplies `id` is rejected (`42501`). |
-| AC-F001-11 | BR-08, TD-11 | **When** a person is created or updated with a missing, empty or whitespace-only display name, **then** it is rejected at the boundary and by the database (`23514`). Structured components may be absent (NULL); when present, they must not be blank. |
+| AC-F001-10 | BR-02, TD-02 | **When** a person is created with no account, **then** the row persists with a database-generated UUIDv7 `id` (`uuidv7()`; `uuid_extract_version(id) = 7`). `people` has no column referencing an account. An insert by `chms_app` that supplies `id` is rejected (`42501`). |
+| AC-F001-11 | BR-08, PPD-01, TD-11 | **When** a person is created or updated with a display name that is missing, empty or whitespace-only, contains a control character or invalid Unicode, or is longer than 100 characters after trimming, **then** it is rejected at the boundary and by the database (`23514`). Leading and trailing whitespace is trimmed, internal whitespace is kept, and names are stored in NFC. Structured components may be absent (NULL); when present, they follow the same rules. `display_name` is authoritative, and no rule synchronizes it with the components. Church names follow the same rules. |
 | AC-F001-12 | BR-03 | **Given** a person, **then**: zero affiliations is valid; active affiliations to several distinct campuses are valid; a second active affiliation to the same campus is rejected; a second active primary is rejected; and ended affiliations keep their `is_primary` value. |
 | AC-F001-13 | BR-04 | **Given** a person with active affiliations, **when** the person is archived, **then**, in one transaction, every active affiliation is ended with reason `person_archived` (rows kept, `is_primary` kept) and the person is archived; all the resulting audit events share one `xact_id`. If any step fails, nothing changes. |
 | AC-F001-14 | BR-04, TD-04 | **When** a person archive and an affiliation insert for that person interleave, in either order, **then** no active affiliation references an archived person. A failed archive leaves the original affiliations active, and one service retry succeeds. |
@@ -138,18 +138,18 @@ See the [security review](../../architecture/CHMS-F001-security-review.md). F001
 Levels: unit; integration on PostgreSQL 18; concurrency, using two connections with `pg_blocking_pids()` to make interleavings deterministic, plus invariant probes; security (privileges and adversarial direct SQL); migration; recovery; static checks. There is no end-to-end level, because F001 has no UI. Test cases and expected results are in the [test and acceptance matrix](test-matrix.md). Every case is **NOT RUN**.
 
 ## Dependencies
-- **Approval** of ADR-003 to ADR-008 (Proposed), and review of ADR-001 and ADR-002 (Recorded baseline).
-- **Confirmation** of PPD-01 (campus-name rules, RR-16); decisions on church-name and person-name rules (RR-16); awareness of RR-15, RR-17 and RR-18.
-- **Compatibility proofs** CP-01 to CP-09 ([readiness report](implementation-readiness.md)).
-- **Separate approval** to install the toolchain and run a test database.
+- **Approvals:** recorded on 2026-10-27 by the product owner, Patrush ([decision register §6](../../decisions/CHMS-F001-decision-register.md#6-approval-record)): BR-01 to BR-10, POL-01 to POL-06, the name rules (PPD-01, closing RR-16 for F001), and ADR-001 to ADR-008 with amendments.
+- **Implementation authorization** (same date): install the ADR-007 toolchain and use disposable local and CI PostgreSQL 18 databases.
+- **Compatibility proofs** CP-01 to CP-09 and TS-F001-33 run first on the implementation branch ([readiness report](implementation-readiness.md)). A failure is resolved within that branch and described in its PR, without weakening an approved security or business invariant.
+- **Deferred, nonblocking for F001:** RR-15 beyond F001 tables, RR-17, RR-18, and readiness items B-07 and B-09 to B-13.
 - **Not required for F001, but required before F002:** RR-07, RR-13 and the D-01 role model.
 
 ## Open questions
-Listed in [decision register §3 and §5](../../decisions/CHMS-F001-decision-register.md#5-deferred-decisions) and tracked as RR-15 to RR-18 in [open-questions.md](../../decisions/open-questions.md).
+Listed in [decision register §5](../../decisions/CHMS-F001-decision-register.md#5-deferred-decisions) and tracked as RR-15, RR-17 and RR-18 in [open-questions.md](../../decisions/open-questions.md). RR-16 is closed for F001.
 
 ## Definition of done
-1. **Approvals recorded:** ADR-003 to ADR-008 accepted by the product owner with named approvers and dates; ADR-001 and ADR-002 reviewed; PPD-01 confirmed and the remaining RR-16 questions answered.
-2. **Compatibility proofs** CP-01 to CP-09 executed on PostgreSQL 18, with commands and results recorded.
+1. **Approvals recorded:** done on 2026-10-27 by Patrush ([decision register §6](../../decisions/CHMS-F001-decision-register.md#6-approval-record)).
+2. **Compatibility proofs** CP-01 to CP-09 and TS-F001-33 executed first on the implementation branch, on PostgreSQL 18, with commands and results recorded; any failure resolved within that branch and described in its PR.
 3. **Test coverage:** every AC-F001 maps to at least one test that has been executed and passed, with nothing skipped. Negative, concurrency, leakage and privilege tests are included.
 4. **CI:** lint, strict typecheck, the tests and `scripts/check_repo_hygiene.py` all pass, with exact commands and results in each PR.
 5. **Migrations:** reviewed by a human, applied explicitly, non-destructive; no drift, including custom objects.

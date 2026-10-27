@@ -1,5 +1,5 @@
 # ADR-006 — Database roles and least privilege for CHMS-F001
-Status: Proposed
+Status: Accepted
 Date: 2026-10-27
 Context: [CHMS-F001](../../features/CHMS-F001/specification.md) needs a schema owner, a runtime application role and audit roles (ADR-005). The audit found that "M00 foundation/roles" in [migration-strategy.md](../../database/migration-strategy.md) does not say whether it means database roles or IAM roles; for F001 it means database roles. PostgreSQL 18 grants `CONNECT` and `TEMPORARY` on databases, and `EXECUTE` on functions, to `PUBLIC` by default ([privileges](https://www.postgresql.org/docs/18/ddl-priv.html), checked 2026-10-27).
 Decision:
@@ -37,4 +37,4 @@ Security impact (residual):
 - **Self-set defaults.** `chms_app` can set defaults for itself with `ALTER ROLE chms_app SET …` ([ALTER ROLE](https://www.postgresql.org/docs/18/sql-alterrole.html)). This is relevant to ADR-005's actor setting; detection is in TS-F001-28.
 - The owner and superusers remain trusted.
 Verification (not executed): TS-F001-29 to TS-F001-31 in the [test matrix](../../features/CHMS-F001/test-matrix.md). Execution status: NOT RUN.
-Approvers: none yet. Requires product-owner approval of this exact content before implementation.
+Approvers: Patrush (product owner), 2026-10-27. Accepted without amendment.

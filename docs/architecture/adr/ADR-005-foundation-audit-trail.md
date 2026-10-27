@@ -1,12 +1,12 @@
 # ADR-005 — Foundation audit trail and system-actor attribution
-Status: Proposed
+Status: Accepted
 Date: 2026-10-27
 Context:
 - [migration-strategy.md](../../database/migration-strategy.md) says audit must be established with each module, not postponed to M09, but [DB-08](../../database/DB-08.md) lists `audit_events` under reporting/administration (M08), and [DB-02](../../database/DB-02.md) lists separate "security events". This conflict is recorded as RR-15 in [open-questions.md](../../decisions/open-questions.md).
 - Approved policies POL-01 to POL-04 cover system actor categories, isolation of test actors, authorized audit readers and the absence of any retention policy.
 - `CLAUDE.md` forbids sensitive member data in logs and forbids treating an application-set setting as a trusted identity.
 Decision:
-1. `chms.audit_events` is created in M00 (foundation) and owned by `chms_owner`. Approving this ADR resolves RR-15 for F001 tables only; DB-08 and DB-02 stay unchanged until a broader decision is made.
+1. `chms.audit_events` is created in M00 (foundation) and owned by `chms_owner`. Accepting this ADR resolves RR-15 for F001 tables only; DB-08 and DB-02 stay unchanged until a broader decision is made.
 2. Audit events are written only by `AFTER INSERT OR UPDATE` row triggers on the F001 tables, which call `chms.audit_row_change()`. That function:
    - is `SECURITY DEFINER`, owned by `chms_audit_writer` (`NOLOGIN`, with only `INSERT` on `chms.audit_events` and `USAGE` on schema `chms`);
    - declares `SET search_path = pg_catalog, pg_temp` and schema-qualifies every object it references;
@@ -49,4 +49,4 @@ Security assumptions:
 - Test categories never reach a production database (POL-02); this is enforced by process, because the migration chain omits them.
 - Restores load data before triggers exist (`pg_dump` puts triggers in post-data; [pg_dump](https://www.postgresql.org/docs/18/app-pgdump.html), checked 2026-10-27).
 Verification (not executed): TS-F001-26 to TS-F001-31 in the [test matrix](../../features/CHMS-F001/test-matrix.md). Execution status: NOT RUN.
-Approvers: none yet. Requires product-owner approval of this exact content before implementation.
+Approvers: Patrush (product owner), 2026-10-27. Accepted without amendment, including the limits and residual risks above.

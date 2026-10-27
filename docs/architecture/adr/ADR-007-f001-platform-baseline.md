@@ -1,5 +1,5 @@
 # ADR-007 — CHMS-F001 platform baseline: PostgreSQL 18, container image, Node.js and Drizzle
-Status: Proposed
+Status: Accepted
 Date: 2026-10-27
 Context: BR-10 (approved) makes PostgreSQL 18 the target major version, subject to compatibility verification. `CLAUDE.md` lists the planned stack (Next.js, TypeScript, PostgreSQL, Drizzle ORM) without versions (audit R-07, RR-13). F001 needs a database, a driver, migration tooling and a disposable test database. Nothing has been installed.
 Decision:
@@ -18,7 +18,7 @@ Compatibility evidence (checked 2026-10-27; nothing executed locally):
 | Item | Evidence | Source |
 |---|---|---|
 | PostgreSQL 18 supported | 18.6 is current; supported until 2030-11-14; 18.0 released 2025-09-25 | [Versioning policy](https://www.postgresql.org/support/versioning/), [release notes](https://www.postgresql.org/docs/18/release-18.html) |
-| UUIDv4 generation | `gen_random_uuid()`; `uuidv4()` is a synonym; `uuidv7()` also exists | [UUID functions](https://www.postgresql.org/docs/18/functions-uuid.html) |
+| UUID generation | `uuidv7()` generates a time-ordered version-7 UUID (used by ADR-001); `gen_random_uuid()` and its synonym `uuidv4()` generate version-4 UUIDs | [UUID functions](https://www.postgresql.org/docs/18/functions-uuid.html) |
 | `xid8`, `pg_current_xact_id()` | `pg_current_xact_id () → xid8`; `xid8` increases strictly monotonically | [System information functions](https://www.postgresql.org/docs/18/functions-info.html), [OID types](https://www.postgresql.org/docs/18/datatype-oid.html) |
 | `casefold()` | Available; requires UTF8 server encoding | [String functions](https://www.postgresql.org/docs/18/functions-string.html) |
 | Catalog change | NOT NULL constraints are now stored in `pg_constraint`, which can affect schema introspection | [Release notes](https://www.postgresql.org/docs/18/release-18.html) |
@@ -50,4 +50,4 @@ Consequences:
 - Upgrading ORM versions needs regression runs of the concurrency and privilege tests.
 - Pinning the image by digest requires a later Dependabot decision for the Docker ecosystem.
 Security impact: pinned images and dependencies reduce supply-chain drift, and the explicit migration step prevents schema changes on application startup.
-Approvers: none yet. BR-10 is approved; this ADR's exact contents are not.
+Approvers: Patrush (product owner), 2026-10-27. Accepted without amendment. Installing this toolchain and using disposable local and CI PostgreSQL 18 databases is authorized; CP-01 to CP-09 and TS-F001-33 run first on the implementation branch.

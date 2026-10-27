@@ -1,13 +1,13 @@
 # CHMS-F001 — Database design proposal
 
-**Status: PROPOSED — NOT REVIEWED OR APPROVED AS A DATABASE CONTRACT. No migration has been written or executed.**
+**Status: ACCEPTED DESIGN — approved by the product owner, Patrush, on 2026-10-27 through ADR-001 to ADR-008, with amendments. No migration has been written or executed, and compatibility proofs CP-01 to CP-09 have not run yet.**
 
 - Feature: [CHMS-F001 specification](../features/CHMS-F001/specification.md)
 - Decisions: [CHMS-F001 decision register](../decisions/CHMS-F001-decision-register.md)
-- Summary package: [DB-01](DB-01.md). This proposal details part of it and does not change it until approved.
-- Target: PostgreSQL 18 (BR-10); ADRs 003–008 are Proposed.
+- Summary package: [DB-01](DB-01.md). This design details part of it; the DB-01 summary itself is unchanged.
+- Target: PostgreSQL 18 (BR-10); ADR-001 to ADR-008 are Accepted.
 
-SQL in this document is design notation, not migration code. Every name below is proposed, and constraint names matter because the service maps database errors to domain errors by constraint name.
+SQL in this document is design notation, not migration code. Object and constraint names below are part of the design; constraint names matter because the service maps database errors to domain errors by constraint name.
 
 ## 1. Entities and relationships
 
@@ -35,12 +35,11 @@ Out of this design (deferred MVP scope): households, relationships, membership a
 ## 2. Tables, constraints and indexes
 
 Shared conventions:
-- `id uuid PRIMARY KEY DEFAULT gen_random_uuid()` (ADR-001; `uuidv4()` is a synonym in PostgreSQL 18).
+- `id uuid PRIMARY KEY DEFAULT uuidv7()` (ADR-001, amended to UUIDv7; `uuidv7()` is new in PostgreSQL 18).
 - `row_version integer NOT NULL DEFAULT 1 CHECK (row_version >= 1)`.
 - `created_at` and `updated_at` are `timestamptz NOT NULL DEFAULT now()`.
 - Every foreign key is `ON UPDATE RESTRICT ON DELETE RESTRICT`.
-- Name checks follow ADR-008, which is Proposed. Every name is NFC, with no leading or trailing Unicode whitespace; this uses a pattern check, because `btrim()` removes only spaces.
-- Campus names are 1–120 characters with capitalization preserved, per PPD-01, which is awaiting confirmation. Length limits for church and person names are open (RR-16).
+- Name checks follow ADR-008 and the approved name rules (PPD-01; RR-16 is closed for F001). Every name column (church and campus `name`, person `display_name`, and `given_name` and `family_name` when present) is NFC, has no leading or trailing Unicode whitespace (a pattern check, because `btrim()` removes only spaces), contains no control characters (Unicode `Cc`), and is 1–100 characters after trimming. Internal whitespace and capitalization are kept as entered.
 
 ### `chms.churches`
 | Column / constraint | Definition |
@@ -48,25 +47,25 @@ Shared conventions:
 | `singleton` | `boolean NOT NULL DEFAULT true` |
 | `churches_singleton_ck` | `CHECK (singleton)` |
 | `churches_singleton_uq` | `UNIQUE (singleton)`, so at most one row can exist |
-| `name` | `text NOT NULL`; `churches_name_ck`: trimmed, NFC, non-empty; maximum length open (RR-16) |
+| `name` | `text NOT NULL`; `churches_name_ck`: approved name rules (trimmed, NFC, no control characters, 1–100 characters) |
 
 ### `chms.campuses`
 | Column / constraint | Definition |
 |---|---|
 | `church_id` | `uuid NOT NULL`; `campuses_church_fk → churches(id)` |
-| `name` | `text NOT NULL`, stored as entered so capitalization is preserved; `campuses_name_ck`: trimmed, NFC, 1–120 characters (PPD-01, awaiting confirmation) |
+| `name` | `text NOT NULL`, stored as entered so capitalization is preserved; `campuses_name_ck`: approved name rules (trimmed, NFC, no control characters, 1–100 characters) |
 | `status`, `archived_at` | `status text NOT NULL DEFAULT 'active'`, constrained by `campuses_status_ck` to `'active'` or `'archived'`; `archived_at timestamptz NULL` |
 | `campuses_archive_state_ck` | `CHECK ((status = 'archived') = (archived_at IS NOT NULL))` |
 | `campuses_church_id_uq` | `UNIQUE (church_id, id)`: target of the existence foreign key |
 | `campuses_church_id_status_uq` | `UNIQUE (church_id, id, status)`: target of the status-carrying foreign key |
-| `campuses_name_ci_uq` | `UNIQUE INDEX (church_id, casefold(name))`; covers archived rows (BR-07) |
+| `campuses_name_ci_uq` | `UNIQUE INDEX (church_id, casefold(name))`, or `(church_id, lower(name))` if CP-08 shows `casefold()` unsuitable (ADR-008); covers archived rows (BR-07) |
 
 ### `chms.people`
 | Column / constraint | Definition |
 |---|---|
 | `church_id` | `uuid NOT NULL`; `people_church_fk → churches(id)` |
-| `display_name` | `text NOT NULL`; `people_display_name_ck`: trimmed, NFC, non-empty (BR-08); maximum length open (RR-16) |
-| `given_name`, `family_name` | `text NULL`; `people_given_name_ck` and `people_family_name_ck`: NULL, or trimmed, NFC and non-empty (never an empty string); maximum length open (RR-16) |
+| `display_name` | `text NOT NULL`; `people_display_name_ck`: approved name rules (BR-08); the authoritative name |
+| `given_name`, `family_name` | `text NULL`; `people_given_name_ck` and `people_family_name_ck`: NULL, or the approved name rules (never an empty string); no synchronization rule with `display_name` |
 | `status`, `archived_at` | As for campuses, with `people_status_ck` and `people_archive_state_ck` |
 | `people_church_id_uq`, `people_church_id_status_uq` | `UNIQUE (church_id, id)` and `UNIQUE (church_id, id, status)` |
 | Not present | Account references, contact details, date of birth, membership status (BR-02 and deferred scope) |

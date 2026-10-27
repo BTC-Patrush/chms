@@ -1,8 +1,8 @@
 # CHMS-F001 — Security review
 
-**Status: DESK REVIEW of a proposed design, dated 2026-10-27. Nothing has been implemented or executed. This review is advisory and is not independent security assurance (`CLAUDE.md`).**
+**Status: DESK REVIEW of the design accepted by the product owner, Patrush, on 2026-10-27. Nothing has been implemented or executed. This review is advisory and is not independent security assurance (`CLAUDE.md`).**
 
-Scope: [CHMS-F001 specification](../features/CHMS-F001/specification.md), [database design](../database/CHMS-F001-database-design.md), and ADR-003 to ADR-008 (all Proposed).
+Scope: [CHMS-F001 specification](../features/CHMS-F001/specification.md), [database design](../database/CHMS-F001-database-design.md), and ADR-001 to ADR-008 (all Accepted, 2026-10-27).
 
 ## 1. Threat assumptions
 
@@ -56,8 +56,8 @@ Scope: [CHMS-F001 specification](../features/CHMS-F001/specification.md), [datab
 
 | ID | Severity | Finding | Status |
 |---|---|---|---|
-| SR-01 | High (design) | Revision 2's `search_path` omitted `pg_temp`, allowing temporary-table shadowing | Corrected in ADR-005 (Proposed); proof TS-F001-30 |
-| SR-02 | Medium | PostgreSQL grants `CONNECT` and `TEMPORARY` on databases and `EXECUTE` on functions to `PUBLIC` by default | Revocations in ADR-006 (Proposed) |
+| SR-01 | High (design) | Revision 2's `search_path` omitted `pg_temp`, allowing temporary-table shadowing | Corrected in ADR-005 (Accepted); proof TS-F001-30 |
+| SR-02 | Medium | PostgreSQL grants `CONNECT` and `TEMPORARY` on databases and `EXECUTE` on functions to `PUBLIC` by default | Revocations in ADR-006 (Accepted) |
 | SR-03 | Medium (unverified) | drizzle-orm #6572 *reports* that a rolled-back transaction can be reported as successful when an error is caught inside the callback. Not reproduced by us; the proposed pattern does not meet the trigger condition | No catch-and-continue rule (ADR-004); CP-05 reproduces or rules it out; TS-F001-33 |
 | SR-04 | Medium (residual) | Actor attribution is application-asserted | Accepted for F001 only; F002 needs RR-07 |
 | SR-05 | Medium (residual) | No RLS; `chms_app` can read everything | TD-10 forbids exposure until F002 conditions are met |
@@ -67,6 +67,7 @@ Scope: [CHMS-F001 specification](../features/CHMS-F001/specification.md), [datab
 | SR-09 | Info | All concurrency guarantees are theoretical until the proof tests run on PostgreSQL 18 | Readiness report |
 | SR-10 | Medium (residual) | The fail-closed actor check cannot tell a transaction-local declaration from a session-level `SET` or a role-level default that `chms_app` can set itself | Documented in ADR-005; services use `set_config(…, true)`; `pg_db_role_setting` check (TS-F001-28) |
 | SR-11 | Medium | By default `pg_restore` continues after errors, so restoring into a non-empty database can partly load data despite the singleton constraint | ADR-003: verified-empty target and `--single-transaction`; TS-F001-36 |
+| SR-12 | Low | UUIDv7 ids embed their creation time (millisecond precision; readable with `uuid_extract_timestamp()`), so anyone who sees an id learns approximately when the record was created | Consequence of the ADR-001 amendment. F001 exposes no ids (TD-10); decide before F002 exposes ids |
 
 ## 6. Mapping to the threat model
 
@@ -83,7 +84,7 @@ Each row still needs a named reviewer. The global threat model is unchanged.
 
 ## 7. Conditions required before F002 exposure
 
-1. ADR-003 to ADR-008 accepted with named approvers; ADR-001 and ADR-002 reviewed.
+1. ADR-001 to ADR-008 accepted with a named approver: met on 2026-10-27 (Patrush).
 2. Every F001 proof-of-concept and compatibility test executed on PostgreSQL 18, with recorded commands and results.
 3. An approved IAM role model and campus-scope grants (D-01; audit R-05).
 4. An approved Better Auth integration (RR-13; audit R-26).
@@ -93,3 +94,4 @@ Each row still needs a named reviewer. The global threat model is unchanged.
 8. Threat-model fields completed for every exposed threat, with a named reviewer.
 9. A reverse proxy and TLS decision (audit R-24) and a decision, or explicit acceptance, on audit retention (RR-17).
 10. TD-10 lifted explicitly by the approved F002 specification. Until then, TS-F001-37 must keep passing.
+11. A decision on exposing UUIDv7 ids, which reveal creation time (SR-12).

@@ -1,5 +1,5 @@
 # ADR-004 — Archive invariants through status-carrying foreign keys, and transaction semantics
-Status: Proposed
+Status: Accepted
 Date: 2026-10-27
 Context: BR-03, BR-04, BR-05 and BR-06 are approved business rules for [CHMS-F001](../../features/CHMS-F001/specification.md). Revision 1 enforced "campus archival is blocked while active affiliations exist" in the service by checking, then updating `archived_at`. The PostgreSQL documentation ([explicit locking](https://www.postgresql.org/docs/current/explicit-locking.html), checked 2026-10-27) states that an `UPDATE` that does not modify a column of a unique index usable by a foreign key takes `FOR NO KEY UPDATE`, and that this lock "will not block `SELECT FOR KEY SHARE`", which is the lock a foreign-key check takes when a referencing row is inserted. A campus could therefore be archived while a concurrent transaction inserts an active affiliation to it, and both could commit. The same race applies to person archival.
 Decision:
@@ -37,4 +37,4 @@ Consequences:
 - Every future table that references people or campuses must decide whether it also carries status.
 Security impact: the invariants hold for direct SQL by `chms_app`, not only for service code.
 Verification (not executed): TS-F001-08 to TS-F001-12, TS-F001-16 to TS-F001-23, TS-F001-32 and TS-F001-38 in the [test matrix](../../features/CHMS-F001/test-matrix.md). Execution status: NOT RUN.
-Approvers: none yet. Requires product-owner approval of this exact content before implementation.
+Approvers: Patrush (product owner), 2026-10-27. Accepted without amendment, including the transaction rules above. drizzle-orm #6572 stays a reported, unverified risk until CP-05 runs.

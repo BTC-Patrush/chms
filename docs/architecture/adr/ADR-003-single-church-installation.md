@@ -1,7 +1,7 @@
 # ADR-003 — Single-church installation model and church identity
-Status: Proposed
+Status: Accepted
 Date: 2026-10-27
-Context: BR-01 (one church per installation, multiple campuses), BR-09 (church identity immutable; authorized renaming audited) and POL-05 (identity replacement requires an authorized rebuild) are approved business rules for [CHMS-F001](../../features/CHMS-F001/specification.md). [ADR-001](ADR-001-identifiers.md) (status: Recorded baseline, review pending) records UUIDv4 keys and same-church composite foreign keys "where appropriate"; `CLAUDE.md` requires same-church references to be enforced. The audit (finding R-06) noted that keeping `church_id` under a single church needs an explicit rationale.
+Context: BR-01 (one church per installation, multiple campuses), BR-09 (church identity immutable; authorized renaming audited) and POL-05 (identity replacement requires an authorized rebuild) are approved business rules for [CHMS-F001](../../features/CHMS-F001/specification.md). [ADR-001](ADR-001-identifiers.md) (accepted with amendment) records UUIDv7 keys and same-church composite foreign keys "where appropriate"; `CLAUDE.md` requires same-church references to be enforced. The audit (finding R-06) noted that keeping `church_id` under a single church needs an explicit rationale.
 Decision:
 1. Keep `chms.churches` and limit it to one row with `singleton boolean NOT NULL DEFAULT true`, `CHECK (singleton)` (`churches_singleton_ck`) and `UNIQUE (singleton)` (`churches_singleton_uq`).
 2. Every church-owned F001 table carries `church_id` referencing `churches(id)`. Same-church references use composite `(church_id, id)` keys, so a cross-church reference cannot be stored even if a second church ever exists.
@@ -35,4 +35,4 @@ Security assumptions:
 - "Authorized renaming" (BR-09) depends on operators controlling access to the maintenance command and the `chms_app` credentials. Until IAM exists (CHMS-F002), the database cannot tell an authorized operator from any other holder of those credentials. The audit records the declared category only.
 - Bootstrap and restore are privileged operations performed by trusted operators.
 Verification (not executed): TS-F001-01 to TS-F001-05 and TS-F001-36 in the [test matrix](../../features/CHMS-F001/test-matrix.md). Execution status: NOT RUN.
-Approvers: none yet. Requires product-owner approval of this exact content before implementation.
+Approvers: Patrush (product owner), 2026-10-27. Accepted without amendment: `church_id` and the composite foreign keys are retained.
