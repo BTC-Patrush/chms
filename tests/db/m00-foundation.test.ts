@@ -4,16 +4,18 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { connectAdmin, roleConfig, uniqueSuffix } from '../support/cluster.ts';
 import { createFoundationDatabase, type FoundationDatabase } from '../support/foundation.ts';
 import { pgFailure } from '../support/pg-assert.ts';
+import { BOOTSTRAP, firstRow, inTransaction, MAINTENANCE } from '../support/sql.ts';
 
 /*
  * M00 foundation: roles, database, schema and table privileges, and the audit trail
  * (ADR-005, ADR-006; TS-F001-26 to TS-F001-31 and TS-F001-34 at the M00 level). The F001
  * tables arrive in M01a, so the audit writer is exercised through a test-only fixture table
- * (chms_test.audited) that carries the same trigger the F001 tables will use.
+ * (chms_test.audited) that carries the same trigger the F001 tables use. Since M01a, audit
+ * events reference a real church, so the suite creates one first.
  */
 
 const ROLES = ['chms_app', 'chms_audit_reader', 'chms_audit_writer', 'chms_owner'];
-const ACTOR = { 'chms.actor_category': 'maintenance' };
+const ACTOR = MAINTENANCE;
 
 describe('M00 foundation', () => {
   const operator = `m00_operator_${uniqueSuffix()}`;
@@ -23,6 +25,7 @@ describe('M00 foundation', () => {
   let owner: pg.Client;
   let app: pg.Client;
   let reader: pg.Client;
+  let churchId: string;
 
   beforeAll(async () => {
     db = await createFoundationDatabase();
@@ -51,6 +54,13 @@ describe('M00 foundation', () => {
     );
     await owner.query('GRANT USAGE ON SCHEMA chms_test TO chms_app');
     await owner.query('GRANT SELECT, INSERT, UPDATE ON chms_test.audited TO chms_app');
+    churchId = await inTransaction(owner, BOOTSTRAP, async () => {
+      const church = await firstRow<{ id: string }>(
+        owner,
+        "INSERT INTO chms.churches (name) VALUES ('Grace Fellowship') RETURNING id",
+      );
+      return church.id;
+    });
   });
 
   afterAll(async () => {
@@ -66,27 +76,7 @@ describe('M00 foundation', () => {
     }
   });
 
-  /** Runs `work` in one transaction with transaction-local settings, as services will. */
-  const inTransaction = async <T>(
-    client: pg.Client,
-    settings: Record<string, string>,
-    work: () => Promise<T>,
-  ): Promise<T> => {
-    await client.query('BEGIN');
-    try {
-      for (const [name, value] of Object.entries(settings)) {
-        await client.query('SELECT set_config($1, $2, true)', [name, value]);
-      }
-      const result = await work();
-      await client.query('COMMIT');
-      return result;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    }
-  };
-
-  const insertAudited = async (client: pg.Client, name: string, churchId = randomUUID()) => {
+  const insertAudited = async (client: pg.Client, name: string) => {
     const { rows } = await client.query<{ id: string }>(
       'INSERT INTO chms_test.audited (church_id, name) VALUES ($1, $2) RETURNING id',
       [churchId, name],
@@ -221,6 +211,8 @@ describe('M00 foundation', () => {
       expect(rows).toEqual([
         { fn: 'chms.audit_row_change()', public_execute: false },
         { fn: 'chms.forbid_audit_change()', public_execute: false },
+        { fn: 'chms.forbid_history_change()', public_execute: false },
+        { fn: 'chms.forbid_identity_change()', public_execute: false },
         { fn: 'chms_test.probe()', public_execute: false },
       ]);
     });
@@ -403,9 +395,8 @@ describe('M00 foundation', () => {
 
   describe('audit events (ADR-005 decisions 3 and 4; TS-F001-26, TS-F001-27, TS-F001-34)', () => {
     it('records a create with a system actor, column names and no values', async () => {
-      const churchId = randomUUID();
       const marker = `MARKER-${uniqueSuffix()}`;
-      const id = await inTransaction(app, ACTOR, () => insertAudited(app, marker, churchId));
+      const id = await inTransaction(app, ACTOR, () => insertAudited(app, marker));
       const events = await eventsFor(id);
       expect(events).toEqual([
         {
