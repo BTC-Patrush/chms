@@ -14,6 +14,8 @@ export default defineConfig({
         test: {
           name: 'db',
           include: ['tests/db/**/*.test.ts'],
+          // Provisions the CHMS-F001 roles once per run (db/provision/01-cluster-roles.sql).
+          globalSetup: ['tests/support/global-setup.ts'],
           testTimeout: 30_000,
           hookTimeout: 60_000,
         },
