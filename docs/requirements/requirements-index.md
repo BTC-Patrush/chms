@@ -20,3 +20,5 @@ Status: **NEEDS RECONCILIATION**. Domain files are structured placeholders and k
 | D-14 | Integrations | SMTP MVP; others Later |
 | D-15 | Security, privacy & audit | MVP |
 | D-16 | Dedicated visitor follow-up | Later; basic visitor status in People MVP |
+
+CHMS-F001 (2026-10-27): the product owner, Patrush, approved business rules BR-01 to BR-09 for parts of [D-02](domains/D-02-church.md#approved-business-rules-chms-f001) and [D-03](domains/D-03-people.md#approved-business-rules-chms-f001). The domains, release labels and MVP scope above are unchanged, and the rest of every domain still needs reconciliation.
