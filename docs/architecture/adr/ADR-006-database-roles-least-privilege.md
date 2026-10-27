@@ -38,3 +38,4 @@ Security impact (residual):
 - The owner and superusers remain trusted.
 Verification (not executed): TS-F001-29 to TS-F001-31 in the [test matrix](../../features/CHMS-F001/test-matrix.md). Execution status: NOT RUN.
 Approvers: Patrush (product owner), 2026-10-27. Accepted without amendment.
+Errata (2026-10-27): E2. The "Self-set defaults" residual does not apply: PostgreSQL 18 denies `chms_app` `ALTER ROLE chms_app SET chms....` (`42501`, CP-09). A session-level `SET` remains possible (ADR-005). The decision is unchanged.

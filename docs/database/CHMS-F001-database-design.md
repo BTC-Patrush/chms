@@ -129,9 +129,9 @@ Service transactions run at READ COMMITTED. Each one declares an actor with `set
 |---|---|---|
 | Bootstrap (owner role) | Insert the church if none exists; otherwise compare names | `23505` on `churches_singleton_uq` → `ChurchAlreadyExists`; name differs → `ChurchMismatch` |
 | Create or rename campus | `INSERT` / `UPDATE … WHERE row_version = $v` | `23505` on `campuses_name_ci_uq` → `CampusNameTaken` |
-| Archive campus | `UPDATE campuses SET status = 'archived', archived_at = now() …` | `23503` on `pca_campus_active_fk` → `CampusHasActiveAffiliations` |
+| Archive campus | `UPDATE campuses SET status = 'archived', archived_at = now() …` | `23001` on `pca_campus_active_fk` → `CampusHasActiveAffiliations` [E1] |
 | Link a person to a campus | `INSERT` | `23503` on `pca_campus_active_fk` / `pca_person_active_fk` → `CampusArchived` / `PersonArchived`; `23505` on the partial indexes → `AffiliationExists` / `PrimaryAffiliationExists` |
-| Archive person | (1) end active affiliations; (2) archive the person | `23503` on `pca_person_active_fk` in step 2 → roll back and retry once, then `ConcurrentAffiliationChange` |
+| Archive person | (1) end active affiliations; (2) archive the person | `23001` on `pca_person_active_fk` in step 2 [E1] → roll back and retry once, then `ConcurrentAffiliationChange` |
 | Unarchive person or campus | `UPDATE` status only; affiliations are not restored | — |
 | Any update | Zero rows affected | `ConcurrentModification` |
 | Any transaction | `40001` or `40P01` | Retry up to 3 times |
@@ -139,7 +139,7 @@ Service transactions run at READ COMMITTED. Each one declares an actor with `set
 **Concurrency analysis (theoretical, from the [PostgreSQL row-lock documentation](https://www.postgresql.org/docs/current/explicit-locking.html), checked 2026-10-27; nothing executed):**
 - Changing `status` modifies a column of `…_church_id_status_uq`, which is a unique index usable by a foreign key, so the `UPDATE` takes `FOR UPDATE`.
 - That lock conflicts with the `FOR KEY SHARE` lock taken by the foreign-key check of a concurrent affiliation insert, so the two transactions serialize.
-- At READ COMMITTED the loser is expected to fail with `23503`; at REPEATABLE READ it may fail with `40001`.
+- At READ COMMITTED a blocked insert fails with `23503` and a blocked archive with `23001`; at REPEATABLE READ the insert fails with `40001` and the archive with `23001` [E1, observed in CP-06].
 - Updates that change only names take `FOR NO KEY UPDATE` and do not conflict with foreign-key checks.
 
 Proof tests: TS-F001-10 to TS-F001-12, TS-F001-20, TS-F001-21 and TS-F001-38 (NOT RUN).
@@ -173,9 +173,14 @@ Also: no `DELETE`, `TRUNCATE`, `REFERENCES`, `TRIGGER` or `MAINTAIN` for any rol
   - `SET search_path = pg_catalog, pg_temp`, with every object schema-qualified;
   - no dynamic SQL;
   - `EXECUTE` granted only to `chms_owner`.
-- **Actor:** read from `current_setting('chms.actor_category', true)`; if missing, the trigger raises SQLSTATE `CHA01`. An unknown category fails `audit_actor_category_fk`. A session-level `SET`, or a role-level default that `chms_app` can set for itself, would also satisfy this check. It guards against coding mistakes, not attacks (ADR-005).
+- **Actor:** read from `current_setting('chms.actor_category', true)`; if missing, the trigger raises SQLSTATE `CHA01`. An unknown category fails `audit_actor_category_fk`. A session-level `SET` would also satisfy this check; `chms_app` cannot create a role-level default [E2]. It guards against coding mistakes, not attacks (ADR-005).
 - **Action:** derived from OLD and NEW. A change of `status` gives `archive` or `unarchive`; `ended_at` changing from NULL to a value gives `end_affiliation`; otherwise `create` or `update`.
 - **Changed fields:** keys whose values differ between `to_jsonb(NEW)` and `to_jsonb(OLD)`, excluding `row_version` and `updated_at`. Names only.
 - **Append-only:** `BEFORE UPDATE OR DELETE` (row) and `BEFORE TRUNCATE` (statement) triggers raise SQLSTATE `CHA02`.
 - **Readers:** members of `chms_audit_reader` only (POL-03). There is no retention or deletion job (POL-04).
 - See [ADR-005](../architecture/adr/ADR-005-foundation-audit-trail.md).
+
+## 8. Errata
+
+- **E1** (2026-10-27, CP-06 on PostgreSQL 18.6): an archive `UPDATE` refused by a status-carrying `ON UPDATE RESTRICT` key raises `23001` (`restrict_violation`), not `23503`. An `INSERT` that references an archived row still raises `23503`. Error mapping uses `23001` plus the constraint name for archive operations. Originally §4 stated `23503` for the archive operations and for the loser at READ COMMITTED.
+- **E2** (2026-10-27, CP-09 on PostgreSQL 18.6): PostgreSQL denies an ordinary role `ALTER ROLE ... SET` for placeholder parameters such as `chms.actor_category` (`42501`); only a superuser can create such a default. The session-level `SET` limitation remains (CP-05, CP-09). Originally §7 said `chms_app` could set a role-level default for itself.
