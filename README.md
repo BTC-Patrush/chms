@@ -2,7 +2,7 @@
 
 Documentation-first, Claude Code-assisted engineering starter kit for a self-hosted single-church, multi-campus ChMS.
 
-**Status:** CHMS-F001 implementation in progress: toolchain, PostgreSQL 18 compatibility tests and migration M00 (roles, grants, audit trail). The F001 tables (M01a), services and any production environment do not exist yet.
+**Status:** CHMS-F001 implementation in progress: toolchain, PostgreSQL 18 compatibility tests, migration M00 (roles, grants, audit trail) and M01a (church, campus, person and affiliation tables). Internal services, operator commands and any production environment do not exist yet.
 
 ## Local development
 Requires Node.js 24.22.1 (`.nvmrc`) and Docker with Compose v2. No paid cloud service is needed.

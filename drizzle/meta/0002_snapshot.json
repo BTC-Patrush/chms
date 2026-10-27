@@ -1,0 +1,621 @@
+{
+  "id": "a266457a-2b68-4949-8adc-a625fa7864d3",
+  "prevId": "d9907d84-f11a-4232-a904-3b06f942d238",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "chms.campuses": {
+      "name": "campuses",
+      "schema": "chms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "church_id": {
+          "name": "church_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "row_version": {
+          "name": "row_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "campuses_name_ci_uq": {
+          "name": "campuses_name_ci_uq",
+          "columns": [
+            {
+              "expression": "church_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "casefold(\"name\")",
+              "isExpression": true,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "campuses_church_fk": {
+          "name": "campuses_church_fk",
+          "tableFrom": "campuses",
+          "columnsFrom": [
+            "church_id"
+          ],
+          "tableTo": "churches",
+          "schemaTo": "chms",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "restrict",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "campuses_church_id_uq": {
+          "name": "campuses_church_id_uq",
+          "columns": [
+            "church_id",
+            "id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "campuses_church_id_status_uq": {
+          "name": "campuses_church_id_status_uq",
+          "columns": [
+            "church_id",
+            "id",
+            "status"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "campuses_name_ck": {
+          "name": "campuses_name_ck",
+          "value": "\"chms\".\"campuses\".\"name\" IS NFC NORMALIZED AND char_length(\"chms\".\"campuses\".\"name\") BETWEEN 1 AND 100 AND \"chms\".\"campuses\".\"name\" !~ '^[\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]|[\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]$' AND \"chms\".\"campuses\".\"name\" !~ '[\\u0001-\\u001F\\u007F-\\u009F]'"
+        },
+        "campuses_status_ck": {
+          "name": "campuses_status_ck",
+          "value": "\"chms\".\"campuses\".\"status\" IN ('active', 'archived')"
+        },
+        "campuses_archive_state_ck": {
+          "name": "campuses_archive_state_ck",
+          "value": "(\"chms\".\"campuses\".\"status\" = 'archived') = (\"chms\".\"campuses\".\"archived_at\" IS NOT NULL)"
+        },
+        "campuses_row_version_ck": {
+          "name": "campuses_row_version_ck",
+          "value": "\"chms\".\"campuses\".\"row_version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "chms.churches": {
+      "name": "churches",
+      "schema": "chms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "singleton": {
+          "name": "singleton",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row_version": {
+          "name": "row_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "churches_singleton_uq": {
+          "name": "churches_singleton_uq",
+          "columns": [
+            "singleton"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "churches_singleton_ck": {
+          "name": "churches_singleton_ck",
+          "value": "\"chms\".\"churches\".\"singleton\""
+        },
+        "churches_name_ck": {
+          "name": "churches_name_ck",
+          "value": "\"chms\".\"churches\".\"name\" IS NFC NORMALIZED AND char_length(\"chms\".\"churches\".\"name\") BETWEEN 1 AND 100 AND \"chms\".\"churches\".\"name\" !~ '^[\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]|[\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]$' AND \"chms\".\"churches\".\"name\" !~ '[\\u0001-\\u001F\\u007F-\\u009F]'"
+        },
+        "churches_row_version_ck": {
+          "name": "churches_row_version_ck",
+          "value": "\"chms\".\"churches\".\"row_version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "chms.people": {
+      "name": "people",
+      "schema": "chms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "church_id": {
+          "name": "church_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "given_name": {
+          "name": "given_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "family_name": {
+          "name": "family_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "row_version": {
+          "name": "row_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "people_church_fk": {
+          "name": "people_church_fk",
+          "tableFrom": "people",
+          "columnsFrom": [
+            "church_id"
+          ],
+          "tableTo": "churches",
+          "schemaTo": "chms",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "restrict",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "people_church_id_uq": {
+          "name": "people_church_id_uq",
+          "columns": [
+            "church_id",
+            "id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "people_church_id_status_uq": {
+          "name": "people_church_id_status_uq",
+          "columns": [
+            "church_id",
+            "id",
+            "status"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "people_display_name_ck": {
+          "name": "people_display_name_ck",
+          "value": "\"chms\".\"people\".\"display_name\" IS NFC NORMALIZED AND char_length(\"chms\".\"people\".\"display_name\") BETWEEN 1 AND 100 AND \"chms\".\"people\".\"display_name\" !~ '^[\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]|[\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]$' AND \"chms\".\"people\".\"display_name\" !~ '[\\u0001-\\u001F\\u007F-\\u009F]'"
+        },
+        "people_given_name_ck": {
+          "name": "people_given_name_ck",
+          "value": "\"chms\".\"people\".\"given_name\" IS NULL OR (\"chms\".\"people\".\"given_name\" IS NFC NORMALIZED AND char_length(\"chms\".\"people\".\"given_name\") BETWEEN 1 AND 100 AND \"chms\".\"people\".\"given_name\" !~ '^[\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]|[\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]$' AND \"chms\".\"people\".\"given_name\" !~ '[\\u0001-\\u001F\\u007F-\\u009F]')"
+        },
+        "people_family_name_ck": {
+          "name": "people_family_name_ck",
+          "value": "\"chms\".\"people\".\"family_name\" IS NULL OR (\"chms\".\"people\".\"family_name\" IS NFC NORMALIZED AND char_length(\"chms\".\"people\".\"family_name\") BETWEEN 1 AND 100 AND \"chms\".\"people\".\"family_name\" !~ '^[\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]|[\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]$' AND \"chms\".\"people\".\"family_name\" !~ '[\\u0001-\\u001F\\u007F-\\u009F]')"
+        },
+        "people_status_ck": {
+          "name": "people_status_ck",
+          "value": "\"chms\".\"people\".\"status\" IN ('active', 'archived')"
+        },
+        "people_archive_state_ck": {
+          "name": "people_archive_state_ck",
+          "value": "(\"chms\".\"people\".\"status\" = 'archived') = (\"chms\".\"people\".\"archived_at\" IS NOT NULL)"
+        },
+        "people_row_version_ck": {
+          "name": "people_row_version_ck",
+          "value": "\"chms\".\"people\".\"row_version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "chms.person_campus_affiliations": {
+      "name": "person_campus_affiliations",
+      "schema": "chms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "church_id": {
+          "name": "church_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "campus_id": {
+          "name": "campus_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_primary": {
+          "name": "is_primary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "person_status": {
+          "name": "person_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'active'"
+        },
+        "campus_status": {
+          "name": "campus_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'active'"
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "end_reason": {
+          "name": "end_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "row_version": {
+          "name": "row_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pca_active_pair_uq": {
+          "name": "pca_active_pair_uq",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "campus_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"chms\".\"person_campus_affiliations\".\"ended_at\" IS NULL",
+          "concurrently": false
+        },
+        "pca_active_primary_uq": {
+          "name": "pca_active_primary_uq",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"chms\".\"person_campus_affiliations\".\"is_primary\" AND \"chms\".\"person_campus_affiliations\".\"ended_at\" IS NULL",
+          "concurrently": false
+        },
+        "pca_person_ix": {
+          "name": "pca_person_ix",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "pca_campus_ix": {
+          "name": "pca_campus_ix",
+          "columns": [
+            {
+              "expression": "campus_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "pca_person_fk": {
+          "name": "pca_person_fk",
+          "tableFrom": "person_campus_affiliations",
+          "columnsFrom": [
+            "church_id",
+            "person_id"
+          ],
+          "tableTo": "people",
+          "schemaTo": "chms",
+          "columnsTo": [
+            "church_id",
+            "id"
+          ],
+          "onUpdate": "restrict",
+          "onDelete": "restrict"
+        },
+        "pca_campus_fk": {
+          "name": "pca_campus_fk",
+          "tableFrom": "person_campus_affiliations",
+          "columnsFrom": [
+            "church_id",
+            "campus_id"
+          ],
+          "tableTo": "campuses",
+          "schemaTo": "chms",
+          "columnsTo": [
+            "church_id",
+            "id"
+          ],
+          "onUpdate": "restrict",
+          "onDelete": "restrict"
+        },
+        "pca_person_active_fk": {
+          "name": "pca_person_active_fk",
+          "tableFrom": "person_campus_affiliations",
+          "columnsFrom": [
+            "church_id",
+            "person_id",
+            "person_status"
+          ],
+          "tableTo": "people",
+          "schemaTo": "chms",
+          "columnsTo": [
+            "church_id",
+            "id",
+            "status"
+          ],
+          "onUpdate": "restrict",
+          "onDelete": "restrict"
+        },
+        "pca_campus_active_fk": {
+          "name": "pca_campus_active_fk",
+          "tableFrom": "person_campus_affiliations",
+          "columnsFrom": [
+            "church_id",
+            "campus_id",
+            "campus_status"
+          ],
+          "tableTo": "campuses",
+          "schemaTo": "chms",
+          "columnsTo": [
+            "church_id",
+            "id",
+            "status"
+          ],
+          "onUpdate": "restrict",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pca_person_status_ck": {
+          "name": "pca_person_status_ck",
+          "value": "\"chms\".\"person_campus_affiliations\".\"person_status\" IS NULL OR \"chms\".\"person_campus_affiliations\".\"person_status\" = 'active'"
+        },
+        "pca_campus_status_ck": {
+          "name": "pca_campus_status_ck",
+          "value": "\"chms\".\"person_campus_affiliations\".\"campus_status\" IS NULL OR \"chms\".\"person_campus_affiliations\".\"campus_status\" = 'active'"
+        },
+        "pca_end_reason_ck": {
+          "name": "pca_end_reason_ck",
+          "value": "\"chms\".\"person_campus_affiliations\".\"end_reason\" IS NULL OR \"chms\".\"person_campus_affiliations\".\"end_reason\" IN ('ended', 'person_archived')"
+        },
+        "pca_lifecycle_ck": {
+          "name": "pca_lifecycle_ck",
+          "value": "(\"chms\".\"person_campus_affiliations\".\"ended_at\" IS NULL AND \"chms\".\"person_campus_affiliations\".\"end_reason\" IS NULL AND \"chms\".\"person_campus_affiliations\".\"person_status\" = 'active' AND \"chms\".\"person_campus_affiliations\".\"campus_status\" = 'active') OR (\"chms\".\"person_campus_affiliations\".\"ended_at\" IS NOT NULL AND \"chms\".\"person_campus_affiliations\".\"end_reason\" IS NOT NULL AND \"chms\".\"person_campus_affiliations\".\"person_status\" IS NULL AND \"chms\".\"person_campus_affiliations\".\"campus_status\" IS NULL)"
+        },
+        "pca_row_version_ck": {
+          "name": "pca_row_version_ck",
+          "value": "\"chms\".\"person_campus_affiliations\".\"row_version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {
+    "chms": "chms"
+  },
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
