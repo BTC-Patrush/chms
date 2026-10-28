@@ -22,17 +22,24 @@ describe('static boundaries', () => {
     expect(sourceFiles.filter((f) => f.startsWith('src/app/'))).toEqual(['src/app/layout.tsx']);
   });
 
-  it('imports F001 services only from service modules and tests (TD-10, AC-F001-28)', () => {
-    // Adding a top-level source directory, such as operator command entry points, must be a
-    // reviewed change to this list.
+  it('imports F001 services only from service modules, operator commands and tests (TD-10, AC-F001-28)', () => {
+    // Adding a top-level source directory must be a reviewed change to these lists.
     const serviceModules = ['church', 'db', 'domain', 'people'];
     const topLevel = new Set(sourceFiles.map((f) => f.split('/')[1]));
-    expect([...topLevel].sort()).toEqual(['app', ...serviceModules]);
-    const importsServices = new RegExp(
-      `from\\s+['"][./]*(?:src/)?(?:${serviceModules.join('|')})/`,
+    expect([...topLevel].sort()).toEqual(['app', 'church', 'commands', 'db', 'domain', 'people']);
+    const importsFrom = (modules: string[]) =>
+      new RegExp(`from\\s+['"][./]*(?:src/)?(?:${modules.join('|')})/`);
+    const moduleOf = (f: string) => f.split('/')[1] ?? '';
+    const outside = sourceFiles.filter(
+      (f) => ![...serviceModules, 'commands'].includes(moduleOf(f)),
     );
-    const outside = sourceFiles.filter((f) => !serviceModules.includes(f.split('/')[1] ?? ''));
-    expect(outside.filter((f) => importsServices.test(readFileSync(f, 'utf8')))).toEqual([]);
+    expect(outside).toEqual(['src/app/layout.tsx']);
+    expect(
+      outside.filter((f) => importsFrom(serviceModules).test(readFileSync(f, 'utf8'))),
+    ).toEqual([]);
+    // Operator commands are entry points: no source file imports them.
+    const importsCommands = importsFrom(['commands']);
+    expect(sourceFiles.filter((f) => importsCommands.test(readFileSync(f, 'utf8')))).toEqual([]);
   });
 
   it('has no path that deletes, truncates, drops or upserts rows (POL-05, TS-F001-36 static part)', () => {
