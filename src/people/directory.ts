@@ -8,10 +8,11 @@ import type { Affiliation } from './affiliations.ts';
 import type { Person } from './people.ts';
 
 /*
- * Scoped reads of people (AC-F001-17). Every read takes an explicit scope. Under a campus
- * scope a person is visible only through an active affiliation to a campus in scope, so
- * unlinked and archived people never are. Under the whole-church scope everyone is, archived
- * people only when asked for. Deciding who may hold which scope belongs to D-01 and F002.
+ * Scoped reads of people (AC-F001-17, PPD-02). Every read takes an explicit scope. Under a
+ * campus scope a person is visible only through an active affiliation to a campus in scope,
+ * so unlinked and archived people never are. Under the whole-church scope everyone is, but
+ * archived people only when `includeArchived` is requested, for lists and lookups by id
+ * alike. Deciding who may hold which scope belongs to D-01 and F002.
  */
 
 export interface PersonDetail {
@@ -36,18 +37,24 @@ export async function listPeople(
 }
 
 /**
- * One person, if visible in `scope`; otherwise PersonNotFound, so a scoped caller cannot tell
- * a person outside its scope from one that does not exist. Under the whole-church scope an
- * archived person is returned too.
+ * One person, if visible in `scope`; otherwise PersonNotFound, so a caller cannot tell a
+ * person outside its scope, or an archived person it did not ask for, from one that does not
+ * exist.
  */
-export async function getPerson(pool: pg.Pool, scope: Scope, id: string): Promise<PersonDetail> {
+export async function getPerson(
+  pool: pg.Pool,
+  scope: Scope,
+  id: string,
+  includeArchived = false,
+): Promise<PersonDetail> {
   const parsedScope = parseScope(scope);
   const personId = parseId('id', id);
+  const visible = visibleIn(parsedScope, parseBoolean('includeArchived', includeArchived));
   return runService(pool, {}, async (tx) => {
     const [person] = await tx
       .select()
       .from(people)
-      .where(and(eq(people.id, personId), visibleIn(parsedScope, true)));
+      .where(and(eq(people.id, personId), visible));
     if (person === undefined) throw new DomainError('PersonNotFound');
     const links = await tx
       .select()

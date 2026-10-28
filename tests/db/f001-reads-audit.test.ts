@@ -91,9 +91,15 @@ describe('scoped reads (AC-F001-17)', () => {
     expect(await failureCode(getPerson(f.appPool, campusScope(y), a.id))).toBe('PersonNotFound');
     expect(await failureCode(getPerson(f.appPool, campusScope(x), c.id))).toBe('PersonNotFound');
     expect(await failureCode(getPerson(f.appPool, campusScope(x), d.id))).toBe('PersonNotFound');
+    expect(await failureCode(getPerson(f.appPool, campusScope(x), d.id, true))).toBe(
+      'PersonNotFound',
+    );
     expect(await failureCode(getPerson(f.appPool, campusScope(), a.id))).toBe('PersonNotFound');
     expect((await getPerson(f.appPool, campusScope(x), a.id)).person.id).toBe(a.id);
-    const wholeD = await getPerson(f.appPool, WHOLE_CHURCH, d.id);
+    // Archived people only when explicitly requested under whole-church scope (PPD-02).
+    expect((await getPerson(f.appPool, WHOLE_CHURCH, c.id)).person.id).toBe(c.id);
+    expect(await failureCode(getPerson(f.appPool, WHOLE_CHURCH, d.id))).toBe('PersonNotFound');
+    const wholeD = await getPerson(f.appPool, WHOLE_CHURCH, d.id, true);
     expect(wholeD.person).toMatchObject({ id: d.id, status: 'archived' });
     expect(wholeD.person.rowVersion).toBe(archivedD.rowVersion);
     expect(wholeD.affiliations).toEqual([
@@ -145,7 +151,7 @@ describe('scoped reads (AC-F001-17)', () => {
       }
       if (random() < 0.03) {
         const target = pick(people);
-        const current = await getPerson(f.appPool, WHOLE_CHURCH, target.id);
+        const current = await getPerson(f.appPool, WHOLE_CHURCH, target.id, true);
         if (current.person.status === 'active') {
           await archivePerson(f.appPool, MAINTENANCE, current.person);
           archived += 1;

@@ -485,6 +485,21 @@ describe('campus, person and affiliation services', () => {
         'PersonNotFound',
       );
     });
+
+    it("updates an archived person's names, audited, and keeps the person archived (PPD-02)", async () => {
+      const { person: archived } = await archivePerson(f.appPool, MAINTENANCE, await person());
+      const renamed = await updatePersonNames(f.appPool, MAINTENANCE, {
+        ...archived,
+        displayName: unique('Archived Renamed'),
+        familyName: 'Example',
+      });
+      expect(renamed).toMatchObject({ status: 'archived', rowVersion: archived.rowVersion + 1 });
+      expect((await auditEvents(f.admin, archived.id)).at(-1)).toMatchObject({
+        action: 'update',
+        actor_category: 'maintenance',
+        changed_fields: ['display_name', 'family_name'],
+      });
+    });
   });
 
   describe('affiliations (BR-03 to BR-06)', () => {
