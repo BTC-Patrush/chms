@@ -57,4 +57,4 @@ Before completion: run relevant lint, typecheck, tests and security checks; repo
 Use `.claude/agents/` for bounded specialist delegation and `.claude/skills/` for repeatable procedures. Specialist reviews are not independent security assurance. Use human review and executable checks.
 
 ## Current status
-CHMS-F001 (backend foundation) is in implementation on `feat/chms-f001-foundation` (draft PR #3). Toolchain, CI, PostgreSQL 18 compatibility proofs, migration M00 (roles, grants, audit) and M01a (F001 tables) exist; services, operator commands, any RLS prototype and any production environment do not. Progress, open questions and next steps are in `PROGRESS.md`.
+CHMS-F001 (backend foundation) is in implementation on `feat/chms-f001-foundation` (draft PR #3). Toolchain, CI, PostgreSQL 18 compatibility proofs, migration M00 (roles, grants, audit), M01a (F001 tables) and the F001 internal services and operator command functions (`src/church`, `src/people`) exist. A runnable operator CLI, any RLS prototype and any production environment do not. Progress, open questions and next steps are in `PROGRESS.md`.

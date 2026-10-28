@@ -1,5 +1,5 @@
 # CHMS-F001 — Church, Campus and Person Foundation
-Status: Approved — business rules, name rules and ADR-001 to ADR-008 approved or accepted by the product owner, Patrush, on 2026-10-27, with amendments. Implementation is authorized and starts after the documentation PR is merged. Nothing has been implemented or executed.
+Status: Approved — business rules, name rules and ADR-001 to ADR-008 approved or accepted by the product owner, Patrush, on 2026-10-27, with amendments. Implementation is authorized and in progress on `feat/chms-f001-foundation` (PR #3): migrations M00 and M01a and the internal services exist, and test execution is recorded in the [test matrix](test-matrix.md#execution-evidence). [Updated 2026-10-28; originally "Implementation is authorized and starts after the documentation PR is merged. Nothing has been implemented or executed."]
 Domain: D-02 Church (partial), D-03 People (partial)
 Requirement IDs: BR-01 to BR-10, POL-01 to POL-06 and PPD-01 (provisional, feature-scoped identifiers; RR-18)
 Owner: Patrush (product owner)
@@ -135,7 +135,7 @@ See the [security review](../../architecture/CHMS-F001-security-review.md). F001
 | AC-F001-28 | POL-06, TD-10 | **Then** the repository contains no HTTP route handler, page, server action or `"use server"` module, and F001 services are imported only by operator commands and tests. |
 
 ## Test plan (unit / integration / E2E / adversarial)
-Levels: unit; integration on PostgreSQL 18; concurrency, using two connections with `pg_blocking_pids()` to make interleavings deterministic, plus invariant probes; security (privileges and adversarial direct SQL); migration; recovery; static checks. There is no end-to-end level, because F001 has no UI. Test cases and expected results are in the [test and acceptance matrix](test-matrix.md). Every case is **NOT RUN**.
+Levels: unit; integration on PostgreSQL 18; concurrency, using two connections with `pg_blocking_pids()` to make interleavings deterministic, plus invariant probes; security (privileges and adversarial direct SQL); migration; recovery; static checks. There is no end-to-end level, because F001 has no UI. Test cases, expected results and execution status are in the [test and acceptance matrix](test-matrix.md). [Updated 2026-10-28; originally ended "Every case is **NOT RUN**."]
 
 ## Dependencies
 - **Approvals:** recorded on 2026-10-27 by the product owner, Patrush ([decision register §6](../../decisions/CHMS-F001-decision-register.md#6-approval-record)): BR-01 to BR-10, POL-01 to POL-06, the name rules (PPD-01, closing RR-16 for F001), and ADR-001 to ADR-008 with amendments.
@@ -157,4 +157,4 @@ Listed in [decision register §5](../../decisions/CHMS-F001-decision-register.md
 7. **Records updated:** the traceability matrix, the deferred MVP list and the open questions.
 
 ## Verification evidence (actual commands/results)
-None. No implementation exists and no F001 test has been executed. Documentation checks for this package are reported in the [readiness report](implementation-readiness.md).
+Execution runs R1 to R3, with commands, results and limits, are in the [test matrix](test-matrix.md#execution-evidence). Compatibility-proof evidence (CP-01 to CP-09) and quality gates are in PR #3. Documentation checks for this package are reported in the [readiness report](implementation-readiness.md). [Updated 2026-10-28; originally began "None. No implementation exists and no F001 test has been executed."]
