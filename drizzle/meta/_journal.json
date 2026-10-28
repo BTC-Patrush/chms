@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793141506001,
+      "tag": "0000_m00_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793142410151,
+      "tag": "0001_m01a_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793142410687,
+      "tag": "0002_m01a_integrity",
+      "breakpoints": true
+    }
+  ]
+}

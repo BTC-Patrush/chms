@@ -1,5 +1,5 @@
 # CHMS-F001 — Church, Campus and Person Foundation
-Status: Approved — business rules, name rules and ADR-001 to ADR-008 approved or accepted by the product owner, Patrush, on 2026-10-27, with amendments. Implementation is authorized and starts after the documentation PR is merged. Nothing has been implemented or executed.
+Status: Approved — business rules, name rules and ADR-001 to ADR-008 approved or accepted by the product owner, Patrush, on 2026-10-27, with amendments. Implementation is authorized and in progress on `feat/chms-f001-foundation` (PR #3): migrations M00 and M01a, the internal services and the operator commands exist, and test execution is recorded in the [test matrix](test-matrix.md#execution-evidence). [Updated 2026-10-28; originally "Implementation is authorized and starts after the documentation PR is merged. Nothing has been implemented or executed."]
 Domain: D-02 Church (partial), D-03 People (partial)
 Requirement IDs: BR-01 to BR-10, POL-01 to POL-06 and PPD-01 (provisional, feature-scoped identifiers; RR-18)
 Owner: Patrush (product owner)
@@ -86,9 +86,17 @@ There is no external API. The internal service operations are:
 - `createCampus`, `renameCampus`, `archiveCampus`, `unarchiveCampus`
 - `createPerson`, `updatePersonNames`, `archivePerson`, `unarchivePerson`
 - `linkPersonToCampus`, `endAffiliation`, `setPrimaryAffiliation`
-- `listPeople(scope, includeArchived)`, `getPerson(scope, id)`
+- `listPeople(scope, includeArchived)`, `getPerson(scope, id, includeArchived)`
 
 Every write takes an actor category, and every update takes a `row_version`. The domain errors are listed in [database design §4](../../database/CHMS-F001-database-design.md#4-transaction-behavior).
+
+Service behaviour approved by the product owner on 2026-10-28 (PPD-02 in the [decision register](../../decisions/CHMS-F001-decision-register.md#approved-service-behaviour-closes-rr-19); closes RR-19):
+- Renaming an archived campus is refused (`CampusArchived`); unarchive it first.
+- Archived people are returned only when `includeArchived` is requested under whole-church scope, for `getPerson` too. Campus scopes never return them.
+- An archived person's names can still be updated; the update is audited.
+- Domain errors use explicit codes and never carry personal data. Besides those in database design §4: `ChurchNotFound`, `CampusNotFound`, `PersonNotFound`, `AffiliationNotFound`, `CampusArchived`, `CampusNotArchived`, `PersonArchived`, `PersonNotArchived`, `AffiliationEnded` and `ValidationFailed` (field and rule, never the value). A database failure with no domain meaning is reported by SQLSTATE and constraint only.
+
+**Operator commands.** `npm run chms -- <command>` runs these operations from the command line (`src/commands`): `bootstrap` as `chms_owner` with actor `bootstrap`, and every other command as `chms_app` with actor `maintenance`. Connection details come from `CHMS_PG_*` environment variables, and passwords only from the files named by `CHMS_OWNER_PASSWORD_FILE` and `CHMS_APP_PASSWORD_FILE`. A password is never an argument and never printed.
 
 ## UI states and accessibility
 Not applicable: F001 has no UI.
@@ -113,7 +121,7 @@ See the [security review](../../architecture/CHMS-F001-security-review.md). F001
 | AC-F001-06 | BR-07, PPD-01, TD-09 | **Given** a campus "North", active or archived, **when** another campus is created with, or renamed to, a name equal under the approved case-insensitive comparison (for example "north" or "NORTH"), **then** it is rejected (`23505`, `campuses_name_ci_uq`). Campus names follow the approved name rules (PPD-01): trimmed, NFC, no control characters, 1–100 characters, capitalization preserved. The comparison function, `casefold()` or `lower()`, is chosen by CP-08, and TS-F001-07 records its results for non-ASCII names. |
 | AC-F001-07 | BR-06 | **Given** a campus with at least one active affiliation, **when** it is archived, **then** the archive is rejected (`CampusHasActiveAffiliations`) and nothing changes. **After** all its affiliations have ended, archiving succeeds. |
 | AC-F001-08 | BR-06, TD-04 | **Given** an archived campus, **when** an affiliation to it is created, through the service or by direct SQL as `chms_app`, **then** it is rejected (`23503`, `pca_campus_active_fk`). |
-| AC-F001-09 | BR-06, TD-04 | **When** a campus archive and an affiliation insert for that campus interleave, in either order, at READ COMMITTED or REPEATABLE READ, **then** at most one succeeds; the other fails with `23503` or `40001`; and no active affiliation references an archived campus. |
+| AC-F001-09 | BR-06, TD-04 | **When** a campus archive and an affiliation insert for that campus interleave, in either order, at READ COMMITTED or REPEATABLE READ, **then** at most one succeeds; the other fails with `23001` (archive), `23503` (insert) or `40001`; and no active affiliation references an archived campus. [Erratum E1, 2026-10-27: originally "`23503` or `40001`"; see the [test matrix](test-matrix.md#errata).] |
 | AC-F001-10 | BR-02, TD-02 | **When** a person is created with no account, **then** the row persists with a database-generated UUIDv7 `id` (`uuidv7()`; `uuid_extract_version(id) = 7`). `people` has no column referencing an account. An insert by `chms_app` that supplies `id` is rejected (`42501`). |
 | AC-F001-11 | BR-08, PPD-01, TD-11 | **When** a person is created or updated with a display name that is missing, empty or whitespace-only, contains a control character or invalid Unicode, or is longer than 100 characters after trimming, **then** it is rejected at the boundary and by the database (`23514`). Leading and trailing whitespace is trimmed, internal whitespace is kept, and names are stored in NFC. Structured components may be absent (NULL); when present, they follow the same rules. `display_name` is authoritative, and no rule synchronizes it with the components. Church names follow the same rules. |
 | AC-F001-12 | BR-03 | **Given** a person, **then**: zero affiliations is valid; active affiliations to several distinct campuses are valid; a second active affiliation to the same campus is rejected; a second active primary is rejected; and ended affiliations keep their `is_primary` value. |
@@ -135,7 +143,7 @@ See the [security review](../../architecture/CHMS-F001-security-review.md). F001
 | AC-F001-28 | POL-06, TD-10 | **Then** the repository contains no HTTP route handler, page, server action or `"use server"` module, and F001 services are imported only by operator commands and tests. |
 
 ## Test plan (unit / integration / E2E / adversarial)
-Levels: unit; integration on PostgreSQL 18; concurrency, using two connections with `pg_blocking_pids()` to make interleavings deterministic, plus invariant probes; security (privileges and adversarial direct SQL); migration; recovery; static checks. There is no end-to-end level, because F001 has no UI. Test cases and expected results are in the [test and acceptance matrix](test-matrix.md). Every case is **NOT RUN**.
+Levels: unit; integration on PostgreSQL 18; concurrency, using two connections with `pg_blocking_pids()` to make interleavings deterministic, plus invariant probes; security (privileges and adversarial direct SQL); migration; recovery; static checks. There is no end-to-end level, because F001 has no UI. Test cases, expected results and execution status are in the [test and acceptance matrix](test-matrix.md). [Updated 2026-10-28; originally ended "Every case is **NOT RUN**."]
 
 ## Dependencies
 - **Approvals:** recorded on 2026-10-27 by the product owner, Patrush ([decision register §6](../../decisions/CHMS-F001-decision-register.md#6-approval-record)): BR-01 to BR-10, POL-01 to POL-06, the name rules (PPD-01, closing RR-16 for F001), and ADR-001 to ADR-008 with amendments.
@@ -157,4 +165,4 @@ Listed in [decision register §5](../../decisions/CHMS-F001-decision-register.md
 7. **Records updated:** the traceability matrix, the deferred MVP list and the open questions.
 
 ## Verification evidence (actual commands/results)
-None. No implementation exists and no F001 test has been executed. Documentation checks for this package are reported in the [readiness report](implementation-readiness.md).
+Execution runs R1 to R3, with commands, results and limits, are in the [test matrix](test-matrix.md#execution-evidence). Compatibility-proof evidence (CP-01 to CP-09) and quality gates are in PR #3. Documentation checks for this package are reported in the [readiness report](implementation-readiness.md). [Updated 2026-10-28; originally began "None. No implementation exists and no F001 test has been executed."]

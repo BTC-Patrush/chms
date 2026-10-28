@@ -1,0 +1,13 @@
+# Documentation and governed configuration are formatted by hand and reviewed separately.
+docs/
+.claude/
+.github/
+CLAUDE.md
+PROGRESS.md
+README.md
+# Generated
+.next/
+coverage/
+next-env.d.ts
+package-lock.json
+drizzle/meta/

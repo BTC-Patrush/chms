@@ -42,7 +42,7 @@ Scope: [CHMS-F001 specification](../features/CHMS-F001/specification.md), [datab
 |---|---|---|
 | Insert a second church; insert a row with a chosen `id` | Denied (`42501`) | TS-F001-03, TS-F001-13 |
 | Change `id` or `church_id`, or re-point an affiliation | Denied (`42501`); the trigger blocks the owner too | TS-F001-04, TS-F001-05 |
-| Link to an archived campus or person; archive a campus that has active links | Foreign-key violation (`23503`), including under concurrency (theoretical) | TS-F001-09 to TS-F001-12, TS-F001-20, TS-F001-21 |
+| Link to an archived campus or person; archive a campus that has active links | Foreign-key violation: `23503` for the link, `23001` for the archive [E1]; observed under concurrency in CP-06 | TS-F001-09 to TS-F001-12, TS-F001-20, TS-F001-21 |
 | Reopen or edit an ended affiliation; delete any row | Denied (`CHH01` / `42501`) | TS-F001-23 |
 | Skip audit by disabling triggers, using `session_replication_role`, or dropping or creating triggers | Denied: requires ownership, superuser or an explicit SET grant, or the `TRIGGER` privilege | TS-F001-31 |
 | Write, read, update or delete audit events | Denied (`42501`); the owner is also blocked from changing or deleting them (`CHA02`) | TS-F001-29 |
@@ -50,7 +50,7 @@ Scope: [CHMS-F001 specification](../features/CHMS-F001/specification.md), [datab
 | Read every person, campus and affiliation | **Possible**: there is no RLS, and campus scope is enforced only in services (residual; this is why TD-10 forbids exposure) | TS-F001-24, TS-F001-25 cover the service layer only |
 | Take strong table locks | *Expected to be denied.* `LOCK TABLE` grants strong modes only for table-level `MAINTAIN`, `UPDATE`, `DELETE` or `TRUNCATE`, and `chms_app` holds only column-level grants (unverified) | TS-F001-31 |
 | Hold row locks for a long time | **Possible** through `UPDATE` or `SELECT … FOR UPDATE`; can block archive and update operations (residual) | — |
-| Set a session-level or role-level actor (`SET`, `ALTER ROLE chms_app SET …`) | **Possible**: ordinary roles may set their own defaults. This defeats the fail-closed actor check (residual; detected by checking `pg_db_role_setting`) | TS-F001-28 |
+| Set a session-level actor (`SET`) | **Possible**: a session-level `SET` persists across transactions and defeats the fail-closed actor check (residual). A role-level default (`ALTER ROLE chms_app SET …`) is denied to `chms_app` [E2]; `pg_db_role_setting` is checked for defaults set by a superuser | TS-F001-28 |
 
 ## 5. Findings
 
@@ -65,7 +65,7 @@ Scope: [CHMS-F001 specification](../features/CHMS-F001/specification.md), [datab
 | SR-07 | Low | The audit trail grows without bound | RR-17 |
 | SR-08 | Low | Getting the PostgreSQL 18 image volume path wrong (`/var/lib/postgresql`) can lose test data when a container is recreated | ADR-007; CP-09 |
 | SR-09 | Info | All concurrency guarantees are theoretical until the proof tests run on PostgreSQL 18 | Readiness report |
-| SR-10 | Medium (residual) | The fail-closed actor check cannot tell a transaction-local declaration from a session-level `SET` or a role-level default that `chms_app` can set itself | Documented in ADR-005; services use `set_config(…, true)`; `pg_db_role_setting` check (TS-F001-28) |
+| SR-10 | Medium (residual) | The fail-closed actor check cannot tell a transaction-local declaration from a session-level `SET`; a role-level default is denied to `chms_app` [E2] | Documented in ADR-005; services use `set_config(…, true)`; `pg_db_role_setting` check (TS-F001-28) |
 | SR-11 | Medium | By default `pg_restore` continues after errors, so restoring into a non-empty database can partly load data despite the singleton constraint | ADR-003: verified-empty target and `--single-transaction`; TS-F001-36 |
 | SR-12 | Low | UUIDv7 ids embed their creation time (millisecond precision; readable with `uuid_extract_timestamp()`), so anyone who sees an id learns approximately when the record was created | Consequence of the ADR-001 amendment. F001 exposes no ids (TD-10); decide before F002 exposes ids |
 
@@ -95,3 +95,8 @@ Each row still needs a named reviewer. The global threat model is unchanged.
 9. A reverse proxy and TLS decision (audit R-24) and a decision, or explicit acceptance, on audit retention (RR-17).
 10. TD-10 lifted explicitly by the approved F002 specification. Until then, TS-F001-37 must keep passing.
 11. A decision on exposing UUIDv7 ids, which reveal creation time (SR-12).
+
+## 8. Errata
+
+- **E1** (2026-10-27, CP-06 on PostgreSQL 18.6): an archive `UPDATE` refused by a status-carrying `ON UPDATE RESTRICT` key raises `23001` (`restrict_violation`), not `23503`. An `INSERT` that references an archived row still raises `23503`. Error mapping uses `23001` plus the constraint name for archive operations. Originally §4 stated `23503` for archiving a campus with active links.
+- **E2** (2026-10-27, CP-09 on PostgreSQL 18.6): PostgreSQL denies an ordinary role `ALTER ROLE ... SET` for placeholder parameters such as `chms.actor_category` (`42501`); only a superuser can create such a default. The session-level `SET` limitation remains (CP-05, CP-09). Originally §4 and SR-10 said `chms_app` could set a role-level actor default.

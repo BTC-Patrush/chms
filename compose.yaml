@@ -1,0 +1,38 @@
+# Local and CI PostgreSQL 18 for development and disposable test databases only.
+# Never point this at production data. See README.md for setup.
+name: chms
+
+services:
+  postgres:
+    # postgres:18-trixie (PostgreSQL 18.6-1.pgdg13+2, built 2026-10-21), pinned by
+    # multi-architecture index digest (ADR-007).
+    image: postgres:18-trixie@sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_admin_password
+      # UTF8 with the builtin locale provider, so index validity does not depend on
+      # operating-system collation libraries (ADR-008).
+      POSTGRES_INITDB_ARGS: >-
+        --encoding=UTF8 --locale=C.UTF-8
+        --locale-provider=builtin --builtin-locale=PG_UNICODE_FAST
+    secrets:
+      - pg_admin_password
+    ports:
+      - '127.0.0.1:${CHMS_PG_PORT:-55432}:5432'
+    volumes:
+      # The PostgreSQL 18 image sets PGDATA=/var/lib/postgresql/18/docker and declares
+      # VOLUME /var/lib/postgresql. Mount there, not at /var/lib/postgresql/data.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      # TCP check: initdb's temporary server listens on the Unix socket only, so this
+      # passes only once the final server accepts connections.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U postgres -d postgres']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+secrets:
+  pg_admin_password:
+    file: ${CHMS_PG_ADMIN_PASSWORD_FILE:?Set CHMS_PG_ADMIN_PASSWORD_FILE to a file containing a generated password}
+
+volumes:
+  pgdata:
