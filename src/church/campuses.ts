@@ -42,13 +42,18 @@ export async function createCampus(
   });
 }
 
+/**
+ * Renames an active campus. An archived campus keeps its name, because archived names stay
+ * reserved (BR-07); whether it may be renamed is open (RR-19), so this fails with
+ * CampusArchived.
+ */
 export async function renameCampus(
   pool: pg.Pool,
   actorCategory: string,
   input: CampusVersion & { readonly name: string },
 ): Promise<Campus> {
   const name = parseName('name', input.name);
-  return updateCampus(pool, actorCategory, input, { name });
+  return updateCampus(pool, actorCategory, input, { name }, ACTIVE_ONLY);
 }
 
 /** Archives a campus; CampusHasActiveAffiliations while any link is active (BR-06). */
@@ -62,7 +67,7 @@ export async function archiveCampus(
     actorCategory,
     input,
     { status: 'archived', archivedAt: sql`now()` },
-    { status: 'active', otherwise: 'CampusArchived' },
+    ACTIVE_ONLY,
   );
 }
 
@@ -85,6 +90,8 @@ interface StatusGuard {
   readonly status: 'active' | 'archived';
   readonly otherwise: DomainErrorCode;
 }
+
+const ACTIVE_ONLY: StatusGuard = { status: 'active', otherwise: 'CampusArchived' };
 
 async function updateCampus(
   pool: pg.Pool,

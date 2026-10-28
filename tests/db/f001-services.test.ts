@@ -241,6 +241,11 @@ describe('campus, person and affiliation services', () => {
       expect(await failureCode(archiveCampus(f.appPool, MAINTENANCE, archived))).toBe(
         'CampusArchived',
       );
+      // An archived campus keeps its reserved name (BR-07; rename of archived campuses: RR-19).
+      await writesNothing(async () => {
+        const rename = renameCampus(f.appPool, MAINTENANCE, { ...archived, name: 'Freed Name' });
+        expect(await failureCode(rename)).toBe('CampusArchived');
+      });
     });
 
     it('TS-F001-06: rejects names equal under casefold(), archived campuses included (CampusNameTaken)', async () => {
