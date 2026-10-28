@@ -1,7 +1,7 @@
 # CHMS-F001 decision register
 
 Feature: [CHMS-F001 — Church, Campus and Person Foundation](../features/CHMS-F001/specification.md)
-Last updated: 2026-10-27
+Last updated: 2026-10-28
 Product owner: Patrush
 
 Status values:
@@ -54,6 +54,14 @@ Technical reading, accepted with ADR-008: "characters" are Unicode code points a
 
 History: PPD-01 was proposed in review on 2026-10-27 for campus names only, with a length of 1–120 characters, leaving church-name and person-name rules open. The approved rules above replace that proposal.
 
+### Approved service behaviour (closes RR-19)
+
+Approved by the product owner, Patrush, on 2026-10-28. The question was raised at the F001 service checkpoint, because the approved documents did not fix these behaviours.
+
+| ID | Decision | Scope | Status | Tracking |
+|---|---|---|---|---|
+| PPD-02 | (a) Renaming an archived campus is refused; unarchive it first, so archived campus names stay reserved (BR-07). (b) Archived people are returned only when "include archived" is explicitly requested under whole-church scope, for lists and lookups by id alike; campus scopes never return archived people. (c) An archived person's names can still be edited, and the edit is audited. (d) Domain errors use explicit codes and never expose personal data. | F001 internal services and operator commands | APPROVED; RR-19 CLOSED | RR-19, [specification](../features/CHMS-F001/specification.md#api-contract) |
+
 ## 4. Technical decisions
 
 Accepted by the product owner, Patrush, on 2026-10-27, through the ADRs listed. The safety constraints documented in each ADR are part of the accepted decision.
@@ -88,7 +96,7 @@ Accepted by the product owner, Patrush, on 2026-10-27, through the ADRs listed. 
 | Named reviewers for threat-model rows | DEFERRED, NONBLOCKING for F001 (B-13) | [Security review](../architecture/CHMS-F001-security-review.md#6-mapping-to-the-threat-model) |
 | Exposure of UUIDv7 ids, which reveal creation time | Open; F001 exposes no ids (TD-10); decide before F002 exposes ids | SR-12 |
 | Name rules | CLOSED for F001 (§3); the `casefold()`/`lower()` choice is made by CP-08 | RR-16 |
-| Test runner and boundary-schema library | DEFERRED to the toolchain step | ADR-007 |
+| Test runner and boundary-schema library | CLOSED for F001: Vitest (toolchain step); boundary schemas are hand-written (`src/domain/input.ts`), with no validation library in F001 (Patrush, 2026-10-28) | ADR-007 |
 
 ## 6. Approval record
 
@@ -99,3 +107,5 @@ Accepted by the product owner, Patrush, on 2026-10-27, through the ADRs listed. 
 | ADR-001 to ADR-008 (TD-01 to TD-12) | Patrush (product owner) | 2026-10-27 | Accepted with amendments: ADR-001 (UUIDv7), ADR-002 (archive-first, no erasure in F001), ADR-008 (approved name rules). Before this, ADR-001 and ADR-002 had no approval record: both were added in `778ce37` (2026-10-26) as "Recorded baseline", and each keeps its original text in a history note |
 | Implementation authorization | Patrush (product owner) | 2026-10-27 | Install the ADR-007 toolchain; use disposable local and CI PostgreSQL 18 databases; run CP-01 to CP-09 and TS-F001-33 at the beginning of the implementation branch; start after the documentation PR is merged |
 | B-07, B-09 to B-13 | Patrush (product owner) | 2026-10-27 | DEFERRED, NONBLOCKING for F001 |
+| PPD-02 service behaviour (closes RR-19) | Patrush (product owner) | 2026-10-28 | Product-owner approval of 2026-10-28 |
+| Hand-written boundary validation; no validation library in F001 | Patrush (product owner) | 2026-10-28 | Product-owner approval of 2026-10-28 |

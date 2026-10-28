@@ -1,5 +1,5 @@
 # CHMS-F001 — Church, Campus and Person Foundation
-Status: Approved — business rules, name rules and ADR-001 to ADR-008 approved or accepted by the product owner, Patrush, on 2026-10-27, with amendments. Implementation is authorized and in progress on `feat/chms-f001-foundation` (PR #3): migrations M00 and M01a and the internal services exist, and test execution is recorded in the [test matrix](test-matrix.md#execution-evidence). [Updated 2026-10-28; originally "Implementation is authorized and starts after the documentation PR is merged. Nothing has been implemented or executed."]
+Status: Approved — business rules, name rules and ADR-001 to ADR-008 approved or accepted by the product owner, Patrush, on 2026-10-27, with amendments. Implementation is authorized and in progress on `feat/chms-f001-foundation` (PR #3): migrations M00 and M01a, the internal services and the operator commands exist, and test execution is recorded in the [test matrix](test-matrix.md#execution-evidence). [Updated 2026-10-28; originally "Implementation is authorized and starts after the documentation PR is merged. Nothing has been implemented or executed."]
 Domain: D-02 Church (partial), D-03 People (partial)
 Requirement IDs: BR-01 to BR-10, POL-01 to POL-06 and PPD-01 (provisional, feature-scoped identifiers; RR-18)
 Owner: Patrush (product owner)
@@ -86,9 +86,17 @@ There is no external API. The internal service operations are:
 - `createCampus`, `renameCampus`, `archiveCampus`, `unarchiveCampus`
 - `createPerson`, `updatePersonNames`, `archivePerson`, `unarchivePerson`
 - `linkPersonToCampus`, `endAffiliation`, `setPrimaryAffiliation`
-- `listPeople(scope, includeArchived)`, `getPerson(scope, id)`
+- `listPeople(scope, includeArchived)`, `getPerson(scope, id, includeArchived)`
 
 Every write takes an actor category, and every update takes a `row_version`. The domain errors are listed in [database design §4](../../database/CHMS-F001-database-design.md#4-transaction-behavior).
+
+Service behaviour approved by the product owner on 2026-10-28 (PPD-02 in the [decision register](../../decisions/CHMS-F001-decision-register.md#approved-service-behaviour-closes-rr-19); closes RR-19):
+- Renaming an archived campus is refused (`CampusArchived`); unarchive it first.
+- Archived people are returned only when `includeArchived` is requested under whole-church scope, for `getPerson` too. Campus scopes never return them.
+- An archived person's names can still be updated; the update is audited.
+- Domain errors use explicit codes and never carry personal data. Besides those in database design §4: `ChurchNotFound`, `CampusNotFound`, `PersonNotFound`, `AffiliationNotFound`, `CampusArchived`, `CampusNotArchived`, `PersonArchived`, `PersonNotArchived`, `AffiliationEnded` and `ValidationFailed` (field and rule, never the value). A database failure with no domain meaning is reported by SQLSTATE and constraint only.
+
+**Operator commands.** `npm run chms -- <command>` runs these operations from the command line (`src/commands`): `bootstrap` as `chms_owner` with actor `bootstrap`, and every other command as `chms_app` with actor `maintenance`. Connection details come from `CHMS_PG_*` environment variables, and passwords only from the files named by `CHMS_OWNER_PASSWORD_FILE` and `CHMS_APP_PASSWORD_FILE`. A password is never an argument and never printed.
 
 ## UI states and accessibility
 Not applicable: F001 has no UI.

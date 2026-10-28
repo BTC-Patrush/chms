@@ -19,6 +19,7 @@
 | POL-05 | [Decision register](../decisions/CHMS-F001-decision-register.md#2-approved-policy-decisions) | CHMS-F001 | Bootstrap and restore procedure | TS-F001-36 | Approved; tests PASS ([test matrix](../features/CHMS-F001/test-matrix.md#execution-evidence)) |
 | POL-06 | [Decision register](../decisions/CHMS-F001-decision-register.md#2-approved-policy-decisions) | CHMS-F001 / F002 | No exposure in F001 (TD-10) | TS-F001-37 | Approved (planning only) |
 | PPD-01 | [Decision register §3](../decisions/CHMS-F001-decision-register.md#3-approved-name-rules-closes-rr-16-for-f001) (Patrush, 2026-10-27) | CHMS-F001 | Name checks on `churches`, `campuses` and `people`; `campuses_name_ci_uq` | TS-F001-07, 14, 15 | Approved; design accepted; implemented; tests PASS ([test matrix](../features/CHMS-F001/test-matrix.md#execution-evidence)) |
+| PPD-02 | [Decision register §3](../decisions/CHMS-F001-decision-register.md#approved-service-behaviour-closes-rr-19) (Patrush, 2026-10-28) | CHMS-F001 | `renameCampus` (archived refused), `listPeople` and `getPerson` (`includeArchived`), `updatePersonNames`, domain errors; operator CLI (`src/commands`) | TS-F001-22, 24, 34 and the CLI tests | Approved; implemented; tests PASS ([test matrix](../features/CHMS-F001/test-matrix.md#execution-evidence)) |
 | Campus scope must be checked | Repository invariant (`CLAUDE.md`); not a product-owner-approved requirement | CHMS-F001 | `listPeople(scope)`, `getPerson(scope)` | TS-F001-24, 25 | Traced; approval status unresolved; tests PASS ([test matrix](../features/CHMS-F001/test-matrix.md#execution-evidence)) |
 | No sensitive data in logs or fixtures | Repository invariant (`CLAUDE.md`); not a product-owner-approved requirement | CHMS-F001 | Logs, audit | TS-F001-34 | Traced; approval status unresolved; tests PASS ([test matrix](../features/CHMS-F001/test-matrix.md#execution-evidence)) |
 
@@ -97,4 +98,4 @@ RR-18 (identifier scheme) applies to every domain.
 - RR-16: closed for F001 by the approved name rules (PPD-01).
 - RR-17: audit retention (deferred, nonblocking for F001).
 - RR-18: identifier scheme (deferred, nonblocking for F001).
-- RR-19: service behaviour the approved documents do not fix, such as renaming an archived campus (raised 2026-10-28; stricter baselines implemented; product-owner confirmation needed).
+- RR-19: closed on 2026-10-28 by the approved service behaviour (PPD-02).

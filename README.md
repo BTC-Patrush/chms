@@ -36,6 +36,25 @@ These are privileged steps (`CLAUDE.md`, ADR-006). Run them only with explicit h
 
 Authorized audit readers are granted per login: `GRANT CONNECT ON DATABASE <database> TO <login>;` and `GRANT chms_audit_reader TO <login>;` (POL-03). A full operations runbook is deferred (B-09).
 
+## Operator commands
+CHMS-F001 has no web interface. Operators run its commands from the command line. Bootstrap needs explicit human authorization (ADR-003).
+
+```bash
+export CHMS_PG_HOST=127.0.0.1 CHMS_PG_PORT=5432 CHMS_PG_DATABASE=chms
+# Each password lives in its own file that only you can read; never pass one as an argument.
+export CHMS_OWNER_PASSWORD_FILE=~/.config/chms/owner-password   # chmod 600
+export CHMS_APP_PASSWORD_FILE=~/.config/chms/app-password       # chmod 600
+
+npm run chms -- --help
+npm run chms -- bootstrap --name "Grace Fellowship"   # as chms_owner; a rerun with the same name is a no-op
+npm run chms -- create-campus --name North            # as chms_app, actor maintenance
+npm run chms -- list-people --scope church
+```
+Output is JSON. Write commands print ids, states and row versions, and every update needs the current `--row-version`. Reads print the people asked for, so treat their output as personal data. The CLI refuses a password file that group or others can access, and never prints a password. Exit status: 0 success, 1 failure (a domain error such as `ConcurrentModification`), 2 usage or configuration error. The connection does not configure TLS yet.
+
+## Recovery drill (TS-F001-36)
+`tests/recovery/restore-drill.ts` checks the restore procedure of ADR-003 on the local disposable cluster. Its header lists the steps: `npm run drill:restore -- prepare`, the `pg_dump` and `pg_restore` commands run by hand (each needs approval), then `verify` and `cleanup`. `verify` exits 0 only when every check passes.
+
 ## Ubuntu setup
 ```bash
 mkdir -p ~/projects
