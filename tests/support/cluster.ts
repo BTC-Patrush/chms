@@ -52,11 +52,15 @@ export interface TestDatabase {
   drop(): Promise<void>;
 }
 
-/** Creates an empty UTF8 database with the builtin locale provider (ADR-008). */
+/**
+ * Creates an empty UTF8 database with the builtin locale provider (ADR-008). The name is random
+ * unless given; a given name must carry the test prefix too.
+ */
 export async function createTestDatabase(
   locale: BuiltinLocale = 'PG_UNICODE_FAST',
+  name = `${TEST_DATABASE_PREFIX}${uniqueSuffix()}`,
 ): Promise<TestDatabase> {
-  const name = `${TEST_DATABASE_PREFIX}${uniqueSuffix()}`;
+  if (!/^chms_t_[a-z0-9_]+$/.test(name)) throw new Error(`Refusing database name ${name}`);
   const admin = await connectAdmin();
   try {
     await admin.query(

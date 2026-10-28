@@ -19,7 +19,8 @@
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:db": "vitest run --project db",
-    "chms": "node src/commands/main.ts"
+    "chms": "node src/commands/main.ts",
+    "drill:restore": "node tests/recovery/restore-drill.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",
